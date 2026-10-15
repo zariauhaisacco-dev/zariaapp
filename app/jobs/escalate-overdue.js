@@ -18,17 +18,6 @@ const NEXT_STAGE = { 1: 7, 7: 14, 14: 30, 30: 9999999 };
   console.log('[escalate] start ' + new Date().toISOString());
 
   try {
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS escalation_log (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        loan_payment_id BIGINT UNSIGNED NOT NULL,
-        stage_days INT NOT NULL,
-        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_payment_stage (loan_payment_id, stage_days),
-        FOREIGN KEY (loan_payment_id) REFERENCES loan_payments(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
-
     let sent = 0;
 
     for (const stage of STAGES) {

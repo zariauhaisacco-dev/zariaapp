@@ -23,7 +23,7 @@
  *   1 — error (details printed to stderr and cron.log)
  */
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
 const si = require('../services/savings-interest');
 
 function log(...args) {

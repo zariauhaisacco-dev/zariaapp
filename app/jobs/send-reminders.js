@@ -18,20 +18,7 @@ const STAGES = [3, 1, 0]; // days until due
   console.log('[reminders] start ' + new Date().toISOString());
 
   try {
-    // Ensure the tracking table exists
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS reminder_log (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        loan_payment_id BIGINT UNSIGNED NOT NULL,
-        stage_days INT NOT NULL,
-        sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_payment_stage (loan_payment_id, stage_days),
-        FOREIGN KEY (loan_payment_id) REFERENCES loan_payments(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `);
-
     let sent = 0;
-    let skipped = 0;
 
     for (const stage of STAGES) {
       const [rows] = await db.query(
