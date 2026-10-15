@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Shareholder</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/admin/shares">← All shareholders</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item" href="/admin/savings">Savings</a>
+        <a class="nav-item active" href="/admin/shares">Shares</a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+        <a class="nav-item" href="/admin/transactions">Transactions</a>
+        <a class="nav-item" href="/admin/reports">Reports</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title" id="holderTitle">Shareholder</h1>
+        <p class="page-sub" id="holderSub">Loading…</p>
+      </div>
+      <div class="page-actions">
+        <button type="button" class="btn-sm btn-dark" id="buyBtn">Buy</button>
+        <button type="button" class="btn-sm btn-outline" id="redeemBtn">Redeem</button>
+        <button type="button" class="btn-sm btn-outline" id="transferBtn">Transfer</button>
+        <a class="btn-sm btn-outline" id="certBtn" href="#" target="_blank" style="text-decoration:none">Certificate</a>
+      </div>
+    </div>
+
+    <section class="stat-strip" style="margin-bottom:20px">
+      <div class="stat">
+        <div class="stat-label">Shares held</div>
+        <div class="stat-value" id="statShares">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Current value</div>
+        <div class="stat-value" id="statValue">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total invested</div>
+        <div class="stat-value" id="statInvested">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Par value</div>
+        <div class="stat-value" id="statPar">—</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Transaction history</h2>
+          <p class="card-sub" id="txSub">Loading…</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th class="num" style="text-align:right">Shares</th>
+              <th class="num" style="text-align:right">Price</th>
+              <th class="num" style="text-align:right">Total</th>
+              <th class="num" style="text-align:right">Balance after</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="txBody">
+            <tr><td colspan="7" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Action modal -->
+<div id="actionModal" hidden style="position:fixed;inset:0;background:rgba(11,31,58,0.5);display:grid;place-items:center;z-index:50;padding:20px">
+  <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;padding:24px;border:1px solid var(--line-1)">
+    <h3 style="margin:0 0 8px;font-size:18px" id="modalTitle">Action</h3>
+    <p style="margin:0 0 16px;color:var(--ink-600);font-size:14px" id="modalBody"></p>
+
+    <div id="modalFields"></div>
+
+    <div id="modalError" hidden style="margin-bottom:12px;padding:10px;background:var(--neg-bg);color:var(--neg);border-radius:6px;font-size:13px"></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" class="btn-sm btn-outline" id="modalCancel">Cancel</button>
+      <button type="button" class="btn-sm btn-dark" id="modalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/admin-shares-detail.js" defer></script>
+</body>
+</html>

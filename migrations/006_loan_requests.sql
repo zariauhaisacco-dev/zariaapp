@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS loan_requests (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  client_id BIGINT UNSIGNED NOT NULL,
+  product_id BIGINT UNSIGNED NULL,
+  requested_amount DECIMAL(15,2) NOT NULL,
+  requested_term_months INT NOT NULL,
+  purpose VARCHAR(500) NULL,
+  status ENUM('pending','approved','rejected','cancelled') NOT NULL DEFAULT 'pending',
+  reviewed_by BIGINT UNSIGNED NULL,
+  reviewed_at TIMESTAMP NULL,
+  rejection_reason VARCHAR(500) NULL,
+  created_loan_id BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_client (client_id),
+  INDEX idx_status (status),
+  INDEX idx_created (created_at),
+  FOREIGN KEY (client_id) REFERENCES clients(id),
+  FOREIGN KEY (product_id) REFERENCES loan_products(id),
+  FOREIGN KEY (reviewed_by) REFERENCES users(id),
+  FOREIGN KEY (created_loan_id) REFERENCES loans(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

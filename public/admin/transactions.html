@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Transactions</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .tx-filters {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+      gap: 10px;
+      padding: 16px;
+    }
+    @media (max-width: 1000px) { .tx-filters { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 560px) { .tx-filters { grid-template-columns: 1fr; } }
+    .tx-filters .field { display: grid; gap: 4px; }
+    .tx-filters label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-500);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .tx-filters input, .tx-filters select {
+      padding: 8px 10px;
+      font-size: 13px;
+      border: 1px solid var(--line-1);
+      border-radius: 6px;
+      background: var(--surface-1);
+      outline: none;
+    }
+    .pagination {
+      display: flex; justify-content: center; align-items: center;
+      gap: 8px; padding: 16px; border-top: 1px solid var(--line-1);
+      flex-wrap: wrap;
+    }
+    .pagination button {
+      padding: 6px 12px; font-size: 12.5px;
+      background: var(--surface-1); border: 1px solid var(--line-1);
+      border-radius: 6px; cursor: pointer; color: var(--ink-700); font-weight: 500;
+    }
+    .pagination button:hover:not(:disabled) { border-color: var(--line-2); }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .pagination .page-info { color: var(--ink-500); font-size: 12.5px; }
+    .totals-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--line-1);
+      border: 1px solid var(--line-1);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .totals-item { background: var(--surface-1); padding: 12px 18px; }
+    .totals-label {
+      font-size: 11px; font-weight: 600; color: var(--ink-500);
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
+    }
+    .totals-value {
+      font-family: var(--font-mono); font-size: 20px;
+      font-weight: 700; color: var(--ink-900);
+    }
+  </style>
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/admin/dashboard">Dashboard</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/savings">Savings</a>
+        <a class="nav-item" href="/admin/shares">Shares</a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item active" href="/admin/transactions">Transactions</a>
+        <a class="nav-item" href="/admin/reports">Reports</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Transactions</h1>
+        <p class="page-sub" id="countLabel">Loading…</p>
+      </div>
+      <div class="page-actions">
+        <a class="btn-sm btn-outline" id="exportBtn" href="#" style="text-decoration:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+          Export CSV
+        </a>
+      </div>
+    </div>
+
+    <!-- Totals -->
+    <section class="totals-strip" id="totalsStrip" style="display:none">
+      <div class="totals-item">
+        <div class="totals-label">Total disbursed (filtered)</div>
+        <div class="totals-value" id="totalDisbursed">—</div>
+      </div>
+      <div class="totals-item">
+        <div class="totals-label">Total repaid (filtered)</div>
+        <div class="totals-value" id="totalRepaid" style="color:var(--pos)">—</div>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="card" style="margin-bottom:16px">
+      <div class="tx-filters">
+        <div class="field">
+          <label for="qInput">Search</label>
+          <input type="search" id="qInput" placeholder="Client name, phone, receipt, reference…">
+        </div>
+        <div class="field">
+          <label for="typeSelect">Type</label>
+          <select id="typeSelect">
+            <option value="">All types</option>
+            <option value="disbursement">Disbursement</option>
+            <option value="repayment">Repayment</option>
+            <option value="late_fee">Late fee</option>
+            <option value="adjustment">Adjustment</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="statusSelect">Status</label>
+          <select id="statusSelect">
+            <option value="">All statuses</option>
+            <option value="completed">Completed</option>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
+            <option value="reversed">Reversed</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fromDate">From</label>
+          <input type="date" id="fromDate">
+        </div>
+        <div class="field">
+          <label for="toDate">To</label>
+          <input type="date" id="toDate">
+        </div>
+      </div>
+      <div style="padding:0 16px 16px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn-sm btn-dark" id="applyBtn">Apply</button>
+        <button type="button" class="btn-sm btn-outline" id="clearBtn">Clear</button>
+        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn-sm btn-outline" data-preset="today">Today</button>
+          <button type="button" class="btn-sm btn-outline" data-preset="7d">Last 7 days</button>
+          <button type="button" class="btn-sm btn-outline" data-preset="30d">Last 30 days</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Client</th>
+              <th>Type</th>
+              <th class="num" style="text-align:right">Amount</th>
+              <th>Reference</th>
+              <th>Loan</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="txBody">
+            <tr><td colspan="7" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="paginationWrap"></div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/admin-transactions.js" defer></script>
+</body>
+</html>

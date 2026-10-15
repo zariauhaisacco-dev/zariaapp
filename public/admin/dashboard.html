@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Admin</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand">
+      <span class="brand-chip">Z</span>
+      <span class="brand-word">Zaria</span>
+    </div>
+    <div class="topbar-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" placeholder="Search clients, loans, transactions…" aria-label="Search">
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" aria-label="Help">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 1 1 4.5 2.6c-.9.6-1.6 1.2-1.6 2.4"/><circle cx="12" cy="17.5" r="0.5" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn has-badge" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg>
+      </button>
+      <div class="avatar" id="avatarBtn" title="Account">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item active" href="/admin/dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h7V3H3zM14 21h7V10h-7zM3 21h7v-6H3zM14 7h7V3h-7z"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-item" href="/admin/loans">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v12H4zM4 11h16"/></svg>
+          Loans
+          <span class="nav-badge" id="pendingLoansBadge" hidden></span>
+        </a>
+        <a class="nav-item" href="/admin/requests">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Requests
+          <span class="nav-badge warn">·</span>
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item" href="/admin/clients">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Clients
+        </a>
+        <a class="nav-item" href="/admin/registrations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="3.5"/></svg>
+          Registrations
+          <span class="nav-badge warn" id="pendingRegsBadge" hidden></span>
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>        <a class="nav-item" href="/admin/savings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8h12M6 16h12"/></svg>
+          Savings
+        </a>
+        <a class="nav-item" href="/admin/shares">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
+          Shares
+        </a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+
+        <a class="nav-item" href="/admin/transactions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>
+          Transactions
+        </a>
+        <a class="nav-item" href="/admin/reports">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 3 5-6"/></svg>
+          Reports
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          Audit log
+        </a>
+        <a class="nav-item" href="/admin/settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+          Settings
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="page-head">
+      <div>
+        <h1 class="page-title" id="greeting">Dashboard</h1>
+        <p class="page-sub" id="pageSub">Loading…</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn-sm btn-outline" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+          Export
+        </button>
+        <a class="btn-sm btn-dark" href="/admin/loans/new" style="text-decoration:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          New loan
+        </a>
+      </div>
+    </div>
+
+    <section class="stat-strip">
+      <div class="stat">
+        <div class="stat-label">Outstanding</div>
+        <div class="stat-value" id="statOutstanding"><span class="unit">KES</span>—</div>
+        <div class="stat-delta" id="statOutstandingDelta" style="color:var(--ink-500)">Active loans</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Collected · MTD</div>
+        <div class="stat-value" id="statCollected"><span class="unit">KES</span>—</div>
+        <div class="stat-delta" style="color:var(--ink-500)">This month</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Active loans</div>
+        <div class="stat-value" id="statActive">—</div>
+        <div class="stat-delta" style="color:var(--ink-500)">Currently open</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Overdue</div>
+        <div class="stat-value" id="statOverdue">—</div>
+        <div class="stat-delta" style="color:var(--ink-500)">Needs follow-up</div>
+      </div>
+    </section>
+
+    <div class="section-head" style="display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 10px">
+      <h2 style="font-size:15px;font-weight:600;color:var(--ink-800);margin:0">Member funds</h2>
+      <span style="font-size:12px;color:var(--ink-500)">Savings · Shares · Dividends</span>
+    </div>
+
+    <section class="stat-strip">
+      <div class="stat">
+        <div class="stat-label">Savings deposits</div>
+        <div class="stat-value" id="statSavings"><span class="unit">KES</span>—</div>
+        <div class="stat-delta" style="color:var(--ink-500)" id="statSavingsSub">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Share capital</div>
+        <div class="stat-value" id="statShares"><span class="unit">KES</span>—</div>
+        <div class="stat-delta" style="color:var(--ink-500)" id="statSharesSub">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Dividends declared</div>
+        <div class="stat-value" id="statDividends"><span class="unit">KES</span>—</div>
+        <div class="stat-delta" style="color:var(--ink-500)" id="statDividendsSub">—</div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Recent activity</h2>
+            <p class="card-sub">From loans and requests</p>
+          </div>
+          <a class="card-link" href="/admin/audit">View all</a>
+        </div>
+        <div class="feed" id="activityFeed">
+          <div class="feed-item"><div class="feed-text">Loading…</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Needs attention</h2>
+            <p class="card-sub">Live</p>
+          </div>
+        </div>
+        <div class="attn-list" id="attnList">
+          <div class="attn-item"><div class="attn-text">Loading…</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Portfolio performance</h2>
+          <p class="card-sub">Collected vs disbursed · last 12 weeks</p>
+        </div>
+        <div class="page-actions">
+          <button class="btn-sm btn-outline">12W</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <svg class="chart-svg" id="chartSvg" viewBox="0 0 800 200" preserveAspectRatio="none">
+          <text x="50%" y="50%" text-anchor="middle" fill="#96A0B0" font-size="12">Loading…</text>
+        </svg>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-swatch" style="background:#F5B301"></span>Collected</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#1E3A66"></span>Disbursed</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Recent loans</h2>
+          <p class="card-sub">Latest 8</p>
+        </div>
+        <a class="card-link" href="/admin/loans">View all →</a>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Loan</th>
+              <th class="num" style="text-align:right">Amount</th>
+              <th class="num" style="text-align:right">Outstanding</th>
+              <th>Status</th>
+              <th>Next due</th>
+            </tr>
+          </thead>
+          <tbody id="recentLoansBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="/js/admin-dashboard.js" defer></script>
+
+  
+<script src="/js/admin-dashboard-inline.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+node_modules
+.env
+logs/*.log
+stderr.log
+stderr.log.*
+tmp/restart.txt
+*.bak
+*.bak-*
+*.broken-*
+_backups/

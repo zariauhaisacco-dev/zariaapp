@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Clients</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/admin/dashboard">Dashboard</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/savings">Savings</a>
+        <a class="nav-item" href="/admin/shares">Shares</a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item active" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item" href="/admin/transactions">Transactions</a>
+        <a class="nav-item" href="/admin/reports">Reports</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Clients</h1>
+        <p class="page-sub" id="countLabel">Loading…</p>
+      </div>
+      <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="search" id="searchInput" placeholder="Search name, phone, ID…"
+               style="padding:7px 12px;font-size:13px;border:1px solid var(--line-1);border-radius:6px;background:var(--surface-1);outline:none;min-width:200px">
+        <a class="btn-sm btn-outline" href="/api/admin/clients/export.csv" style="text-decoration:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg>
+          Export
+        </a>
+        <button type="button" class="btn-sm btn-outline" id="importBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 4h16"/></svg>
+          Import
+        </button>
+        <button type="button" class="btn-sm btn-dark" id="newClientBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M12 5v14M5 12h14"/></svg>
+          New client
+        </button>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Phone</th>
+              <th>National ID</th>
+              <th class="num" style="text-align:right">Active loans</th>
+              <th>Status</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody id="clientsBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+
+<!-- Import modal -->
+<div id="importModal" hidden style="position:fixed;inset:0;background:rgba(11,31,58,0.5);display:grid;place-items:center;z-index:50;padding:20px">
+  <div style="background:#fff;border-radius:12px;max-width:640px;width:100%;padding:24px;border:1px solid var(--line-1);max-height:90vh;overflow-y:auto">
+    <h3 style="margin:0 0 8px;font-size:18px">Import clients</h3>
+    <p style="margin:0 0 16px;color:var(--ink-600);font-size:14px;line-height:1.5">
+      Upload a CSV file with columns: <code style="font-family:var(--font-mono);font-size:12px;background:var(--surface-2);padding:2px 6px;border-radius:4px">full_name, email, phone, national_id, initial_password</code>
+    </p>
+
+    <div class="field" style="margin-bottom:16px">
+      <label for="csvFile">CSV file</label>
+      <input type="file" id="csvFile" accept=".csv,text/csv"
+             style="width:100%;padding:10px;border:1px solid var(--line-1);border-radius:6px;background:var(--surface-1)">
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;color:var(--ink-500);margin-bottom:6px">Or paste CSV directly:</div>
+      <textarea id="csvPaste" placeholder="full_name,email,phone,national_id,initial_password" rows="6"
+                style="width:100%;padding:10px;font-family:var(--font-mono);font-size:12px;border:1px solid var(--line-1);border-radius:6px;background:var(--surface-1);outline:none;resize:vertical"></textarea>
+    </div>
+
+    <div id="importResult" hidden style="margin-bottom:16px"></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" class="btn-sm btn-outline" id="importCancel">Cancel</button>
+      <button type="button" class="btn-sm btn-dark" id="importConfirm">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- New client modal -->
+<div id="newClientModal" hidden style="position:fixed;inset:0;background:rgba(11,31,58,0.5);display:grid;place-items:center;z-index:50;padding:20px">
+  <div style="background:#fff;border-radius:12px;max-width:520px;width:100%;padding:24px;border:1px solid var(--line-1)">
+    <h3 style="margin:0 0 16px;font-size:18px">Create new client</h3>
+
+    <div class="field" style="margin-bottom:12px">
+      <label for="ncFullName">Full name</label>
+      <input type="text" id="ncFullName" maxlength="120" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label for="ncEmail">Email</label>
+      <input type="email" id="ncEmail" maxlength="255" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label for="ncPhone">Phone (M-Pesa)</label>
+      <input type="tel" id="ncPhone" placeholder="07XXXXXXXX" maxlength="15" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label for="ncNationalId">National ID</label>
+      <input type="text" id="ncNationalId" maxlength="8" inputmode="numeric" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+    </div>
+    <div class="field" style="margin-bottom:16px">
+      <label for="ncPassword">Initial password (min 8 chars)</label>
+      <input type="text" id="ncPassword" value="Zaria@2026" maxlength="100" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono)">
+      <div style="font-size:12px;color:var(--ink-500);margin-top:4px">Client can change this after first login</div>
+    </div>
+
+    <div id="newClientError" hidden style="margin-bottom:12px;padding:10px;background:var(--neg-bg);color:var(--neg);border-radius:6px;font-size:13px"></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button type="button" class="btn-sm btn-outline" id="newClientCancel">Cancel</button>
+      <button type="button" class="btn-sm btn-dark" id="newClientConfirm">Create</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/admin-clients.js" defer></script>
+</body>
+</html>

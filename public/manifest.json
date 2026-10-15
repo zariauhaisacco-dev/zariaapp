@@ -1,0 +1,16 @@
+{
+  "name": "Zaria Lending",
+  "short_name": "Zaria",
+  "description": "Fast, transparent loans. Repay via M-Pesa.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B1F3A",
+  "theme_color": "#0B1F3A",
+  "icons": [
+    { "src": "/favicon/192", "sizes": "192x192", "type": "image/png" },
+    { "src": "/favicon/512", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon/512", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

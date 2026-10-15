@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · New loan</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .form-shell { max-width: 640px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 560px) { .row-2 { grid-template-columns: 1fr; } }
+    .summary-box {
+      background: var(--surface-2);
+      border: 1px solid var(--line-1);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 20px 0;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+    .summary-row { display: flex; justify-content: space-between; padding: 5px 0; }
+    .summary-row .label { font-family: var(--font-sans); color: var(--ink-600); }
+    .summary-row .value { font-weight: 600; color: var(--ink-900); }
+    .summary-row.total {
+      border-top: 1px solid var(--line-2);
+      margin-top: 8px;
+      padding-top: 12px;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand">
+      <span class="brand-chip">Z</span><span class="brand-word">Zaria</span>
+    </div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/admin/loans">← All loans</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item active" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item" href="/admin/savings">Savings</a>
+        <a class="nav-item" href="/admin/shares">Shares</a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+        <a class="nav-item" href="/admin/transactions">Transactions</a>
+        <a class="nav-item" href="/admin/reports">Reports</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">New loan</h1>
+        <p class="page-sub">Originate a loan for an existing client</p>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="card-body form-shell">
+
+        <div class="field" style="margin-bottom:18px">
+          <label for="clientPicker">Client</label>
+          <input type="text" id="clientSearch" placeholder="Search by name or phone…"
+                 style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--line-1);border-radius:6px">
+          <div id="clientResults" style="margin-top:6px;border:1px solid var(--line-1);border-radius:6px;background:#fff;max-height:240px;overflow-y:auto;display:none"></div>
+          <div id="selectedClient" style="margin-top:8px;padding:10px 12px;background:var(--surface-2);border-radius:6px;font-size:13px;display:none"></div>
+        </div>
+
+        <div class="field" style="margin-bottom:18px">
+          <label for="productPicker">Loan product</label>
+          <select id="productPicker" style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--line-1);border-radius:6px">
+            <option value="">Select a product…</option>
+          </select>
+          <div id="productHint" style="font-size:12px;color:var(--ink-500);margin-top:6px"></div>
+        </div>
+
+        <div class="row-2" style="margin-bottom:18px">
+          <div class="field">
+            <label for="amountInput">Principal (KES)</label>
+            <input type="number" id="amountInput" step="0.01" min="1"
+                   placeholder="0.00"
+                   style="width:100%;padding:10px 12px;font-size:15px;font-weight:600;border:1px solid var(--line-1);border-radius:6px">
+          </div>
+          <div class="field">
+            <label for="termInput">Term (months)</label>
+            <input type="number" id="termInput" step="1" min="1" max="24"
+                   style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--line-1);border-radius:6px">
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:18px">
+          <label for="rateInput">Interest rate (% flat)</label>
+          <input type="number" id="rateInput" step="0.1" min="0" max="99"
+                 style="width:100%;padding:10px 12px;font-size:15px;border:1px solid var(--line-1);border-radius:6px">
+        </div>
+
+        <div class="field" style="margin-bottom:18px">
+          <label for="purposeInput">Purpose (optional)</label>
+          <input type="text" id="purposeInput" maxlength="500"
+                 placeholder="e.g. Working capital, restock, school fees"
+                 style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+        </div>
+
+        <div class="summary-box" id="previewBox">
+          <div class="summary-row"><span class="label">Principal</span><span class="value" id="pvPrincipal">—</span></div>
+          <div class="summary-row"><span class="label">Interest</span><span class="value" id="pvInterest">—</span></div>
+          <div class="summary-row total"><span class="label">Total repayable</span><span class="value" id="pvTotal">—</span></div>
+          <div class="summary-row"><span class="label">Per installment (equal)</span><span class="value" id="pvInstallment">—</span></div>
+          <div class="summary-row"><span class="label">First due</span><span class="value" id="pvFirstDue">—</span></div>
+        </div>
+
+        <div class="form-error" id="formError" role="alert" hidden style="margin-bottom:12px"></div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <a class="btn-sm btn-outline" href="/admin/loans" style="text-decoration:none">Cancel</a>
+          <button type="button" class="btn-sm btn-dark" id="submitBtn" style="padding:0 20px;height:36px">Create loan</button>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/admin-loan-new.js" defer></script>
+</body>
+</html>

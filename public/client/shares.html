@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · My shares</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/client/dashboard">Overview</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">My account</div>
+        <a class="nav-item" href="/client/dashboard">Overview</a>
+        <a class="nav-item" href="/client/loans">My loans</a>
+        <a class="nav-item" href="/client/savings">My savings</a>
+        <a class="nav-item active" href="/client/shares">My shares</a>
+        <a class="nav-item" href="/client/dividends">My dividends</a>
+        <a class="nav-item" href="/client/transactions">Transactions</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Services</div>
+        <a class="nav-item" href="/client/request">Request a loan</a>
+        <a class="nav-item" href="/client/statements">Statements</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">My shares</h1>
+        <p class="page-sub">Your shareholding with Zaria SACCO</p>
+      </div>
+      <div class="page-actions">
+        <a class="btn-sm btn-outline" id="certBtn" href="/api/certificate/0" target="_blank" style="text-decoration:none">Download certificate</a>
+      </div>
+    </div>
+
+    <div id="noHolding" hidden>
+      <section class="card">
+        <div class="card-body" style="padding:40px 24px;text-align:center">
+          <h3 style="margin:0 0 8px;font-size:16px">No shares yet</h3>
+          <p style="margin:0;color:var(--ink-500);font-size:14px">
+            Contact us on <strong>0746 138 896</strong> to buy shares and become a member-owner of Zaria.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div id="holdingSection" hidden>
+      <section class="client-primary" style="margin-bottom:20px">
+        <div class="label">Your shareholding</div>
+        <div class="amount"><span class="unit">KES</span><span id="currentValue">—</span></div>
+        <div class="meta"><span id="sharesCount">—</span> shares × KES <span id="parValue">—</span> par value</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;position:relative;z-index:1">
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Total invested</div>
+            <div style="font-family:var(--font-mono);font-size:15px;font-weight:600" id="totalInvested">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Total redeemed</div>
+            <div style="font-family:var(--font-mono);font-size:15px;font-weight:600" id="totalRedeemed">—</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Share transactions</h2>
+            <p class="card-sub" id="txSub">Loading…</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th class="num" style="text-align:right">Shares</th>
+                <th class="num" style="text-align:right">Value</th>
+                <th class="num" style="text-align:right">Holding after</th>
+              </tr>
+            </thead>
+            <tbody id="txBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script src="/js/client-shares.js" defer></script>
+</body>
+</html>

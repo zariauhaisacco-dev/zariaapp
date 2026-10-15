@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Apply for a loan</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="icon" href="/favicon/32" sizes="32x32">
+  <link rel="icon" href="/favicon/192" sizes="192x192">
+  <link rel="apple-touch-icon" href="/favicon/180">
+  <link rel="manifest" href="/manifest.json">
+  <style>
+    .signup-shell { max-width: 640px; margin: 0 auto; padding: 32px 20px 60px; }
+    .signup-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
+    .signup-brand .chip { width: 32px; height: 32px; border-radius: 9px; background: var(--amber-500);
+                          display: grid; place-items: center; font-weight: 800; color: var(--navy-900); }
+    .signup-brand .word { font-weight: 700; font-size: 16px; }
+    .signup-head { margin-bottom: 24px; }
+    .signup-head h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
+    .signup-head p { margin: 0; color: var(--ink-500); font-size: 14px; }
+    .signup-form { display: grid; gap: 18px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 560px) { .row-2 { grid-template-columns: 1fr; } }
+    .hint { font-size: 12px; color: var(--ink-400); margin-top: 4px; }
+    .hp { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+    .success-box { padding: 20px; border: 1px solid var(--line-1); background: var(--surface-1);
+                   border-radius: var(--radius-md); }
+    .success-box h2 { margin: 0 0 8px; font-size: 18px; }
+    .success-box p { margin: 0 0 16px; color: var(--ink-600); font-size: 14px; line-height: 1.55; }
+    select.styled { padding:12px 14px;font-size:16px;font-family:inherit;color:var(--ink-900);background:#fff;
+                    border:1px solid var(--line);border-radius:10px;width:100%; }
+  </style>
+</head>
+<body>
+  <main class="signup-shell">
+    <div class="signup-brand">
+      <span class="chip">Z</span><span class="word">Zaria</span>
+    </div>
+
+    <div id="form-wrap">
+      <div class="signup-head">
+        <h1>Apply for a loan</h1>
+        <p>Tell us a bit about you. Our team reviews every application personally.</p>
+      </div>
+
+      <form id="signupForm" class="signup-form" novalidate>
+        <div class="hp" aria-hidden="true">
+          <label>Website</label>
+          <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label for="full_name">Full name</label>
+          <input type="text" id="full_name" name="full_name" required maxlength="120" autocomplete="name">
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required maxlength="255" autocomplete="email"
+                   spellcheck="false" autocapitalize="none">
+          </div>
+          <div class="field">
+            <label for="phone">Phone (M-Pesa)</label>
+            <input type="tel" id="phone" name="phone" required inputmode="tel" placeholder="07XXXXXXXX"
+                   autocomplete="tel" maxlength="15">
+            <div class="hint">Must be the number you use for M-Pesa</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="national_id">National ID</label>
+          <input type="text" id="national_id" name="national_id" required inputmode="numeric"
+                 pattern="\d{7,8}" maxlength="8" autocomplete="off">
+          <div class="hint">7 or 8 digits (without spaces)</div>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required minlength="8"
+                   autocomplete="new-password">
+            <div class="hint">At least 8 characters</div>
+          </div>
+          <div class="field">
+            <label for="confirm_password">Confirm password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
+                   autocomplete="new-password">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="purpose">What do you need the loan for? <span style="color:var(--ink-400);font-weight:400">(optional)</span></label>
+          <input type="text" id="purpose" name="purpose" maxlength="500" placeholder="e.g. restock my shop, school fees, transport">
+        </div>
+
+        <div class="field">
+          <label for="heard_about">How did you hear about Zaria? <span style="color:var(--ink-400);font-weight:400">(optional)</span></label>
+          <select id="heard_about" name="heard_about" class="styled">
+            <option value="">Select…</option>
+            <option value="friend">Friend or family</option>
+            <option value="sms">SMS</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="search">Google search</option>
+            <option value="social">Facebook / Instagram</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-error" id="formError" role="alert" hidden></div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+          <span class="btn-label">Submit application</span>
+          <span class="btn-spinner" hidden></span>
+        </button>
+
+        <p class="legal" style="text-align:left">
+          By applying you agree to our <a href="/terms" class="link">Terms</a> and
+          <a href="/privacy" class="link">Privacy Policy</a>.
+          Your details are protected under Kenya's Data Protection Act.
+        </p>
+
+        <p style="text-align:center;font-size:14px;color:var(--ink-500);margin:8px 0 0">
+          Already have an account? <a href="/" class="link">Sign in</a>
+        </p>
+      </form>
+    </div>
+
+    <div id="success-wrap" hidden>
+      <div class="success-box">
+        <h2>Application received</h2>
+        <p>Thank you. We've received your application and our team is reviewing it.
+           You'll hear from us by email within <strong>1–2 business days</strong>.</p>
+        <p style="margin:0;color:var(--ink-500);font-size:13px">
+          Questions? Call 0746 138 896 or email info@zariauhai.com.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/signup.js" defer></script>
+
+  
+<script src="/js/signup-inline.js" defer></script>
+</body>
+</html>

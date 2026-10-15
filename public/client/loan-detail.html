@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · My loan</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand">
+      <span class="brand-chip">Z</span><span class="brand-word">Zaria</span>
+    </div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/client/loans">← All loans</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">My account</div>
+        <a class="nav-item" href="/client/dashboard">Overview</a>
+        <a class="nav-item active" href="/client/loans">My loans</a>
+        <a class="nav-item" href="/client/transactions">Transactions</a>
+        <a class="nav-item" href="/client/savings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8h12M6 16h12"/></svg>
+          My savings
+        </a>
+        <a class="nav-item" href="/client/shares">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
+          My shares
+        </a>
+        <a class="nav-item" href="/client/dividends">My dividends</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Services</div>
+        <a class="nav-item" href="/client/request">Request a loan</a>
+        <a class="nav-item" href="/client/statements">Statements</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div class="page-head">
+      <div>
+        <h1 class="page-title" id="loanTitle">Loan</h1>
+        <p class="page-sub" id="loanSub">Loading…</p>
+      </div>
+      <div class="page-actions" id="pdfActions"></div>
+    </div>
+
+    <div id="nextPaymentCard"></div>
+
+    <section class="stat-strip" style="margin-bottom:20px">
+      <div class="stat">
+        <div class="stat-label">Principal</div>
+        <div class="stat-value" id="statPrincipal">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total repayable</div>
+        <div class="stat-value" id="statTotal">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Repaid</div>
+        <div class="stat-value" id="statRepaid">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Outstanding</div>
+        <div class="stat-value" id="statOutstanding">—</div>
+      </div>
+    </section>
+
+    <section class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Repayment schedule</h2>
+            <p class="card-sub" id="scheduleSub">Loading…</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Due date</th>
+                <th class="num" style="text-align:right">Amount</th>
+                <th class="num" style="text-align:right">Paid</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Loan details</h2>
+            <p class="card-sub" id="infoSub"></p>
+          </div>
+          <span class="pill" id="statusPill">·</span>
+        </div>
+        <div class="kv-list" id="infoList"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Payment history</h2>
+          <p class="card-sub" id="txSub">Loading…</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th class="num" style="text-align:right">Amount</th>
+              <th>Receipt</th>
+            <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody id="txBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="/js/client-loan-detail.js?v=1791964210674" defer></script>
+
+  
+<script src="/js/client-loan-detail-inline.js?v=1791964210674" defer></script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Request a loan</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .form-shell { max-width: 640px; margin: 0 auto; }
+    .product-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 720px) { .product-grid { grid-template-columns: 1fr; } }
+    .product-card {
+      border: 1px solid var(--line-1);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      cursor: pointer;
+      background: var(--surface-1);
+      transition: border-color 120ms, box-shadow 120ms, transform 90ms;
+    }
+    .product-card:hover { border-color: var(--line-2); box-shadow: var(--shadow-sm); }
+    .product-card.selected { border-color: var(--navy-900); box-shadow: 0 0 0 2px rgba(11,31,58,0.08); }
+    .product-name { font-size: 15px; font-weight: 700; margin: 0 0 6px; color: var(--ink-900); }
+    .product-range { font-size: 12.5px; color: var(--ink-500); margin: 0 0 10px; }
+    .product-meta { font-size: 12px; color: var(--ink-600); line-height: 1.5; }
+    .product-meta strong { color: var(--ink-900); font-variant-numeric: tabular-nums; }
+    .summary-box {
+      background: var(--surface-2);
+      border: 1px solid var(--line-1);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 20px 0;
+      font-size: 13px;
+    }
+    .summary-row { display: flex; justify-content: space-between; padding: 5px 0; }
+    .summary-row .label { color: var(--ink-600); }
+    .summary-row .value { font-family: var(--font-mono); font-weight: 600; color: var(--ink-900); }
+    .summary-row.total { border-top: 1px solid var(--line-2); margin-top: 8px; padding-top: 12px; font-size: 15px; }
+    .notice {
+      background: var(--warn-bg);
+      border-left: 3px solid var(--warn);
+      padding: 12px 14px;
+      border-radius: 4px;
+      font-size: 13.5px;
+      color: var(--ink-800);
+      margin-bottom: 20px;
+    }
+    .notice.success { background: var(--pos-bg); border-left-color: var(--pos); }
+    .notice.error { background: var(--neg-bg); border-left-color: var(--neg); }
+  </style>
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand">
+      <span class="brand-chip">Z</span>
+      <span class="brand-word">Zaria</span>
+    </div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/client/dashboard">Back to overview</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">My account</div>
+        <a class="nav-item" href="/client/dashboard">Overview</a>
+        <a class="nav-item" href="/client/loans">My loans</a>
+        <a class="nav-item" href="/client/savings">My savings</a>
+        <a class="nav-item" href="/client/transactions">Transactions</a>
+        <a class="nav-item" href="/client/shares">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
+          My shares
+        </a>
+        <a class="nav-item" href="/client/dividends">My dividends</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Services</div>
+        <a class="nav-item active" href="/client/request">Request a loan</a>
+        <a class="nav-item" href="/client/statements">Statements</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Request a loan</h1>
+        <p class="page-sub">Pick a product and let us know how much you need</p>
+      </div>
+    </div>
+
+    <div id="statusBanner"></div>
+    <div id="eligibilityBanner" style="display:none"></div>
+
+    <section class="card">
+      <div class="card-body form-shell">
+
+        <h3 style="margin:0 0 12px;font-size:14px;font-weight:700">Choose a product</h3>
+        <div class="product-grid" id="productGrid">
+          <div class="empty" style="grid-column:1/-1">Loading products…</div>
+        </div>
+
+        <div id="formArea" style="display:none">
+          <div class="field" style="margin-bottom:16px">
+            <label for="amountInput">Amount (KES)</label>
+            <input type="number" id="amountInput" step="100" min="0"
+                   style="width:100%;padding:12px 14px;font-size:16px;font-weight:600;border:1px solid var(--line-1);border-radius:6px">
+            <div id="amountHint" style="font-size:12px;color:var(--ink-500);margin-top:6px"></div>
+          </div>
+
+          <div class="field" style="margin-bottom:16px">
+            <label for="purposeInput">What's it for? <span style="color:var(--ink-400);font-weight:400">(optional)</span></label>
+            <input type="text" id="purposeInput" maxlength="500"
+                   placeholder="e.g. Restock my shop, school fees, transport"
+                   style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+          </div>
+
+          <div class="summary-box" id="previewBox">
+            <div class="summary-row"><span class="label">Amount</span><span class="value" id="pvAmount">—</span></div>
+            <div class="summary-row"><span class="label">Interest (<span id="pvRateLabel">—</span>%)</span><span class="value" id="pvInterest">—</span></div>
+            <div class="summary-row total"><span class="label">Total repayable</span><span class="value" id="pvTotal">—</span></div>
+            <div class="summary-row"><span class="label">Installments</span><span class="value" id="pvInstallments">—</span></div>
+          </div>
+
+          <div class="form-error" id="formError" role="alert" hidden style="margin-bottom:12px"></div>
+
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button type="button" class="btn-sm btn-dark" id="submitBtn" style="padding:0 20px;height:38px">Submit request</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/client-request.js?v=1791964210674" defer></script>
+</body>
+</html>

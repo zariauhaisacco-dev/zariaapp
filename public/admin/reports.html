@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Reports</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .report-filters { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; padding: 16px; }
+    .report-filters .field { display: grid; gap: 4px; }
+    .report-filters label { font-size: 11.5px; font-weight: 600; color: var(--ink-500); text-transform: uppercase; letter-spacing: 0.05em; }
+    .report-filters input { padding: 8px 10px; font-size: 13px; border: 1px solid var(--line-1); border-radius: 6px; background: var(--surface-1); }
+    .export-buttons { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 16px 16px; }
+  </style>
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/admin/dashboard">Dashboard</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/savings">Savings</a>
+        <a class="nav-item" href="/admin/shares">Shares</a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item" href="/admin/transactions">Transactions</a>
+        <a class="nav-item active" href="/admin/reports">Reports</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Reports</h1>
+        <p class="page-sub">Performance summary and data exports</p>
+      </div>
+    </div>
+
+    <!-- Date range -->
+    <section class="card" style="margin-bottom:20px">
+      <div class="report-filters">
+        <div class="field">
+          <label for="fromDate">From</label>
+          <input type="date" id="fromDate">
+        </div>
+        <div class="field">
+          <label for="toDate">To</label>
+          <input type="date" id="toDate">
+        </div>
+        <button type="button" class="btn-sm btn-dark" id="runBtn" style="height:36px;padding:0 18px">Run report</button>
+        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn-sm btn-outline" data-preset="today">Today</button>
+          <button type="button" class="btn-sm btn-outline" data-preset="7d">Last 7 days</button>
+          <button type="button" class="btn-sm btn-outline" data-preset="30d">Last 30 days</button>
+          <button type="button" class="btn-sm btn-outline" data-preset="mtd">Month to date</button>
+          <button type="button" class="btn-sm btn-outline" data-preset="lastMonth">Last month</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary stats -->
+    <section class="stat-strip" id="statsStrip" style="margin-bottom:20px;display:none">
+      <div class="stat">
+        <div class="stat-label">Disbursed</div>
+        <div class="stat-value" id="statDisbursed">—</div>
+        <div class="stat-delta" id="statDisbursedCount" style="color:var(--ink-500)"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Collected</div>
+        <div class="stat-value" id="statCollected">—</div>
+        <div class="stat-delta" id="statCollectedCount" style="color:var(--ink-500)"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">New loans</div>
+        <div class="stat-value" id="statNewLoans">—</div>
+        <div class="stat-delta" id="statRepaidLoans" style="color:var(--ink-500)"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">New clients</div>
+        <div class="stat-value" id="statNewClients">—</div>
+        <div class="stat-delta" style="color:var(--ink-500)">In period</div>
+      </div>
+    </section>
+
+    <!-- Portfolio (unfiltered) -->
+    <section class="card" id="portfolioCard" style="margin-bottom:20px">
+      <div class="card-head">
+        <div><h2 class="card-title">Current portfolio</h2><p class="card-sub">Live snapshot — not filtered by date</p></div>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px">
+          <div>
+            <div style="font-size:11.5px;font-weight:600;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em">Outstanding</div>
+            <div id="pfOutstanding" style="font-family:var(--font-mono);font-size:22px;font-weight:700;margin-top:4px">—</div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;font-weight:600;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em">Active loans</div>
+            <div id="pfActive" style="font-family:var(--font-mono);font-size:22px;font-weight:700;margin-top:4px">—</div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;font-weight:600;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em">Overdue</div>
+            <div id="pfOverdue" style="font-family:var(--font-mono);font-size:22px;font-weight:700;margin-top:4px">—</div>
+          </div>
+          <div>
+            <div style="font-size:11.5px;font-weight:600;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em">Repaid</div>
+            <div id="pfRepaid" style="font-family:var(--font-mono);font-size:22px;font-weight:700;margin-top:4px">—</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Export buttons -->
+    <section class="card">
+      <div class="card-head">
+        <div><h2 class="card-title">Export data</h2><p class="card-sub">Download CSV files for external analysis or tax filing</p></div>
+      </div>
+      <div class="card-body export-buttons" style="padding-top:4px">
+        <a class="btn-sm btn-outline" id="exportTxns" href="#" style="text-decoration:none">Transactions CSV</a>
+        <a class="btn-sm btn-outline" id="exportLoans" href="#" style="text-decoration:none">Loans CSV</a>
+        <a class="btn-sm btn-outline" id="exportClients" href="/api/admin/reports/clients.csv" style="text-decoration:none">All clients CSV</a>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/admin-reports.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Transactions</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand">
+      <span class="brand-chip">Z</span><span class="brand-word">Zaria</span>
+    </div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/client/dashboard">Overview</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">My account</div>
+        <a class="nav-item" href="/client/dashboard">Overview</a>
+        <a class="nav-item" href="/client/loans">My loans</a>
+        <a class="nav-item" href="/client/savings">My savings</a>
+        <a class="nav-item active" href="/client/transactions">Transactions</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Services</div>
+        <a class="nav-item" href="/client/request">Request a loan</a>
+        <a class="nav-item" href="/client/shares">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
+          My shares
+        </a>
+        <a class="nav-item" href="/client/dividends">My dividends</a>
+        <a class="nav-item" href="/client/statements">Statements</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Transactions</h1>
+        <p class="page-sub" id="countLabel">Loading…</p>
+      </div>
+      <div class="page-actions">
+        <select id="typeFilter" class="btn-sm btn-outline" style="padding-right:8px">
+          <option value="all">All types</option>
+          <option value="repayment">Payments</option>
+          <option value="disbursement">Disbursements</option>
+        </select>
+      </div>
+    </div>
+
+    <section class="card" style="margin-bottom:16px" id="summaryStrip">
+      <div class="card-body" style="display:flex;gap:24px;flex-wrap:wrap;padding:14px 18px">
+        <div>
+          <div style="font-size:11.5px;font-weight:600;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em">Total repaid</div>
+          <div id="totalRepaid" style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--pos);margin-top:4px">—</div>
+        </div>
+        <div>
+          <div style="font-size:11.5px;font-weight:600;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em">Total borrowed</div>
+          <div id="totalBorrowed" style="font-family:var(--font-mono);font-size:20px;font-weight:700;margin-top:4px">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Loan</th>
+              <th class="num" style="text-align:right">Amount</th>
+              <th>Reference</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="txBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/client-transactions.js?v=1791964210674" defer></script>
+
+  
+<script src="/js/client-transactions-inline.js?v=1791964210674" defer></script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · My loans</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-chip">Z</span>
+      <span class="brand-word">Zaria</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn has-badge" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></svg>
+      </button>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">My account</div>
+        <a class="nav-item active" href="/client/dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h7V3H3zM14 21h7V10h-7zM3 21h7v-6H3zM14 7h7V3h-7z"/></svg>
+          Overview
+        </a>
+        <a class="nav-item" href="/client/loans">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v12H4zM4 11h16"/></svg>
+          My loans
+        </a>
+        <a class="nav-item" href="/client/transactions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>
+          Transactions
+        </a>
+        <a class="nav-item" href="/client/savings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8h12M6 16h12"/></svg>
+          My savings
+        </a>
+        <a class="nav-item" href="/client/shares">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
+          My shares
+        </a>
+        <a class="nav-item" href="/client/dividends">My dividends</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Services</div>
+        <a class="nav-item" href="/client/request">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+          Request a loan
+        </a>
+        <a class="nav-item" href="/client/statements">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M14 3v6h6"/></svg>
+          Statements
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <div id="pushPrompt" hidden style="background:linear-gradient(120deg, rgba(11,31,58,0.06), rgba(245,179,1,0.08));border:1px solid var(--line-1);border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px">
+        <div style="font-weight:600;font-size:14px">Get payment reminders</div>
+        <div style="font-size:12.5px;color:var(--ink-500);margin-top:2px">Enable notifications for due dates, payments, and loan updates.</div>
+      </div>
+      <button type="button" class="btn-sm btn-dark" id="pushEnable" style="height:34px;padding:0 16px">Enable</button>
+      <button type="button" class="btn-sm" id="pushDismiss" style="background:transparent;color:var(--ink-600);border:1px solid var(--line-1);height:34px;padding:0 12px">Not now</button>
+    </div>
+
+    <div id="installBar" hidden style="background:linear-gradient(120deg,var(--navy-900),var(--navy-700));color:#fff;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-weight:600;font-size:14px">Install Zaria on your phone</div>
+        <div style="font-size:12.5px;color:rgba(255,255,255,0.72);margin-top:2px">Faster access, works offline.</div>
+      </div>
+      <button class="btn-sm btn-amber" id="installBtn" style="height:34px;padding:0 16px">Install</button>
+      <button class="btn-sm" id="installDismiss" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.24);height:34px;padding:0 12px">Later</button>
+    </div>
+    <div class="page-head">
+      <div>
+        <h1 class="page-title" id="greeting">Welcome</h1>
+        <p class="page-sub">Your loan at a glance</p>
+      </div>
+    </div>
+
+    <section class="client-primary" id="clientHero">
+      <div class="label">Loading…</div>
+      <div class="amount"><span class="unit">KES</span>—</div>
+    </section>
+
+    <section class="client-money-strip" id="moneyStrip" aria-label="My money">
+      <div class="money-card" id="moneySavings">
+        <div class="money-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8h12M6 16h12"/></svg>
+        </div>
+        <div class="money-body">
+          <div class="money-label">Savings balance</div>
+          <div class="money-value" id="moneySavingsValue"><span class="unit">KES</span>—</div>
+          <div class="money-sub" id="moneySavingsSub">—</div>
+        </div>
+      </div>
+
+      <div class="money-card" id="moneyShares">
+        <div class="money-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
+        </div>
+        <div class="money-body">
+          <div class="money-label">Shares held</div>
+          <div class="money-value" id="moneySharesValue">—</div>
+          <div class="money-sub" id="moneySharesSub">—</div>
+        </div>
+      </div>
+
+      <div class="money-card" id="moneyDividends">
+        <div class="money-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </div>
+        <div class="money-body">
+          <div class="money-label">Dividends earned</div>
+          <div class="money-value" id="moneyDividendsValue"><span class="unit">KES</span>—</div>
+          <div class="money-sub" id="moneyDividendsSub">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid-2-even">
+      <div class="card" id="loanSummaryCard">
+        <div class="card-head">
+          <div><h2 class="card-title">Loan summary</h2><p class="card-sub">Loading…</p></div>
+        </div>
+      </div>
+
+      <div class="card" id="recentTxnsCard">
+        <div class="card-head">
+          <div><h2 class="card-title">Recent transactions</h2><p class="card-sub">Loading…</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="background:linear-gradient(120deg,var(--surface-1),var(--surface-2));border-style:dashed">
+      <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <h3 style="margin:0 0 4px;font-size:15px;font-weight:700">Need more funds?</h3>
+          <p style="margin:0;color:var(--ink-500);font-size:13px">Existing clients in good standing can request a top-up any time.</p>
+        </div>
+        <a class="btn-sm btn-dark" href="/client/request" style="text-decoration:none;height:38px;padding:0 18px;display:inline-flex;align-items:center">
+          Request a new loan
+        </a>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/client-dashboard.js?v=1791964210674" defer></script>
+
+  
+<script src="/js/client-dashboard-inline.js?v=1791964210674" defer></script>
+</body>
+</html>

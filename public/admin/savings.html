@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Savings</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/admin/dashboard">Dashboard</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item active" href="/admin/savings">Savings</a>        <a class="nav-item" href="/admin/shares">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
+          Shares
+        </a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+
+        <a class="nav-item" href="/admin/transactions">Transactions</a>
+        <a class="nav-item" href="/admin/reports">Reports</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Savings</h1>
+        <p class="page-sub" id="countLabel">Loading…</p>
+      </div>
+      <div class="page-actions">
+        <input type="search" id="searchInput" placeholder="Search name, phone, account…"
+               style="padding:7px 12px;font-size:13px;border:1px solid var(--line-1);border-radius:6px;background:var(--surface-1);outline:none;min-width:220px">
+      </div>
+    </div>
+
+    <section class="stat-strip" id="statsStrip" style="margin-bottom:20px;display:none">
+      <div class="stat">
+        <div class="stat-label">Accounts</div>
+        <div class="stat-value" id="statAccounts">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total savings balance</div>
+        <div class="stat-value" id="statBalance">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Avg per account</div>
+        <div class="stat-value" id="statAvg">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Interest rate</div>
+        <div class="stat-value" id="statRate">5%</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Client</th>
+              <th class="num" style="text-align:right">Balance</th>
+              <th class="num" style="text-align:right">Total deposited</th>
+              <th>Status</th>
+              <th>Last activity</th>
+            </tr>
+          </thead>
+          <tbody id="accountsBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/admin-savings.js" defer></script>
+</body>
+</html>

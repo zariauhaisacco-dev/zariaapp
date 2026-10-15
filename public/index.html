@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#05070F">
+  <meta name="description" content="Zaria — fast, transparent loans for growing businesses in Kenya. Repay monthly via M-Pesa.">
+  <title>Zaria — Loans built for Kenya</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/favicon/32" sizes="32x32">
+  <link rel="icon" href="/favicon/192" sizes="192x192">
+  <link rel="apple-touch-icon" href="/favicon/180">
+  <link rel="stylesheet" href="/css/landing.css">
+</head>
+<body class="landing">
+
+<div class="mesh" aria-hidden="true"></div>
+<div class="mesh-grain" aria-hidden="true"></div>
+
+<div class="land-shell">
+
+  <!-- ===== NAV ===== -->
+  <nav class="land-nav">
+    <a href="/" class="land-brand">
+      <span class="land-brand-mark">Z</span>
+      <span class="land-brand-word">Zaria</span>
+    </a>
+
+    <div class="land-nav-links">
+      <a href="#how">How it works</a>
+      <a href="#security">Security</a>
+      <a href="#contact">Contact</a>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px">
+      <button type="button" class="land-nav-cta" id="installNavBtn" hidden>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/>
+        </svg>
+        Install app
+      </button>
+      <a href="#login" class="land-nav-cta">
+        Sign in
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M5 12h14M13 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="land-hero">
+
+    <!-- LEFT: copy -->
+    <div class="land-copy">
+      <div class="land-eyebrow">
+        <span class="land-eyebrow-dot"></span>
+        <span>Approvals in 24 hours · Kenya-wide</span>
+      </div>
+
+      <h1 class="land-h1">
+        Fast, transparent<br>
+        loans for <em>growing</em><br>
+        businesses.
+      </h1>
+
+      <p class="land-lede">
+        Get up to <strong style="color:var(--land-text)">KES 200,000</strong> with clear terms and
+        no hidden fees. Apply in minutes, receive funds via M-Pesa, and repay on your own schedule.
+      </p>
+
+      <div class="land-trust">
+        <span class="land-trust-chip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10"/></svg>
+          Licensed by CBK
+        </span>
+        <span class="land-trust-chip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10"/></svg>
+          Data Protection Act compliant
+        </span>
+        <span class="land-trust-chip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l4 4 10-10"/></svg>
+          Powered by M-Pesa
+        </span>
+      </div>
+
+      <div class="land-cta-row">
+        <a href="/signup" class="land-btn land-btn-primary">
+          Apply for a loan
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#login" class="land-btn land-btn-ghost">
+          Check loan status
+        </a>
+        <button type="button" class="land-btn land-btn-ghost" id="installHeroBtn" hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/>
+          </svg>
+          Install app
+        </button>
+      </div>
+
+      <div class="land-social">
+        <div class="land-avatars">
+          <span class="land-avatar">M</span>
+          <span class="land-avatar">J</span>
+          <span class="land-avatar">A</span>
+          <span class="land-avatar">P</span>
+        </div>
+        <span>Trusted by borrowers across Kenya</span>
+      </div>
+
+      <div class="land-stats">
+        <div class="land-stat">
+          <div class="land-stat-value">4.9★</div>
+          <div class="land-stat-label">Avg. rating</div>
+        </div>
+        <div class="land-stat">
+          <div class="land-stat-value">24h</div>
+          <div class="land-stat-label">Approvals</div>
+        </div>
+        <div class="land-stat">
+          <div class="land-stat-value">10%</div>
+          <div class="land-stat-label">From APR</div>
+        </div>
+        <div class="land-stat">
+          <div class="land-stat-value">0</div>
+          <div class="land-stat-label">Hidden fees</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: login -->
+    <div class="land-login-wrap" id="login">
+      <div class="land-preview" aria-hidden="true"></div>
+
+      <div class="land-login">
+        <div class="land-login-head">
+          <h2>Welcome back</h2>
+          <p>Sign in to view your loans and repayments.</p>
+        </div>
+
+        <form id="loginForm" autocomplete="on" novalidate>
+          <div class="land-field">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email"
+                   autocomplete="username" inputmode="email" required
+                   spellcheck="false" autocapitalize="none"
+                   placeholder="you@example.com">
+          </div>
+
+          <div class="land-field">
+            <label for="password">Password</label>
+            <div class="land-field-row">
+              <input type="password" id="password" name="password"
+                     autocomplete="current-password" required minlength="8"
+                     placeholder="••••••••">
+              <button type="button" class="land-password-toggle" id="togglePassword" aria-label="Show password">
+                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a18.45 18.45 0 0 1 4.06-5.06"/>
+                  <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19"/>
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                  <path d="M1 1l22 22"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-error land-login-error" id="formError" role="alert" hidden></div>
+
+          <button type="submit" class="land-login-submit" id="submitBtn">
+            <span class="btn-label">
+              Sign in
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </span>
+            <span class="btn-spinner" hidden></span>
+          </button>
+
+          <div class="land-login-links">
+            <a href="/forgot-password">Forgot password?</a>
+            <a href="/signup">New here? <strong>Apply now →</strong></a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="land-foot" id="contact">
+    <div style="margin-bottom:8px">
+      <strong style="color:var(--land-text-dim)">Talk to us</strong> · 0746 138 896 · WhatsApp 254746138896 · <a href="mailto:info@zariauhai.com">info@zariauhai.com</a>
+    </div>
+    <div style="margin-bottom:8px">
+      Nairobi, Kenya · Mon–Sat, 8:00–18:00 EAT
+    </div>
+    <div>
+      © <span id="year"></span> Zaria Lending ·
+      <a href="/terms">Terms</a> ·
+      <a href="/privacy">Privacy</a>
+    </div>
+  </footer>
+
+</div>
+
+<script src="/js/login.js" defer></script>
+<script src="/js/landing-install.js" defer></script>
+
+
+
+
+<script src="/js/landing-inline.js" defer></script>
+</body>
+</html>
