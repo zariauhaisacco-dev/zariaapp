@@ -5,6 +5,7 @@ const Joi = require('joi');
 const db = require('../db');
 const audit = require('../services/audit');
 const email = require('../services/email');
+const emailValidate = require('../services/email-validate');
 
 const router = express.Router();
 
@@ -81,6 +82,23 @@ router.post('/signup', signupLimiter, async (req, res) => {
     }
 
     const emailLower = value.email.toLowerCase().trim();
+
+    // Reject email domains that can't receive mail (no MX record).
+    // Catches typos like "user@gmial.com" and disposable/nonexistent domains.
+    const mxOk = await emailValidate.hasValidMx(emailLower);
+    if (!mxOk) {
+      await audit.log({
+        actorRole: 'system',
+        action: 'signup.rejected_email_domain',
+        entityType: 'pending_registration',
+        newValues: { email: emailLower },
+        ip, userAgent: ua,
+      });
+      return res.status(400).json({
+        error: 'That email address cannot receive mail. Please check for typos and try again.',
+        details: [{ field: 'email', message: 'This domain does not accept email' }],
+      });
+    }
 
     // Duplicate checks — return SAME response shape regardless
     const [dupeUser] = await db.query(

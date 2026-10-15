@@ -6,6 +6,7 @@ const Joi = require('joi');
 const db = require('../db');
 const audit = require('../services/audit');
 const email = require('../services/email');
+const emailValidate = require('../services/email-validate');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -188,6 +189,21 @@ router.post('/forgot-password', forgotLimiter, async (req, res) => {
     if (error) return res.json(GENERIC);
 
     const emailLower = value.email.toLowerCase().trim();
+
+    // If the domain can't receive mail, silently skip (do NOT leak that it
+    // was rejected — same generic response as an unknown email).
+    const mxOk = await emailValidate.hasValidMx(emailLower);
+    if (!mxOk) {
+      await audit.log({
+        actorRole: 'system',
+        action: 'password_reset.requested_bad_domain',
+        entityType: 'user',
+        newValues: { email: emailLower },
+        ip, userAgent: ua,
+      });
+      return res.json(GENERIC);
+    }
+
     const [rows] = await db.query(
       'SELECT id, email, role FROM users WHERE email = ? LIMIT 1',
       [emailLower]
