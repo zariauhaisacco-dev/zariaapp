@@ -34,7 +34,8 @@ const STAGES = [1, 7, 14, 30];
       const [rows] = await db.query(
         `SELECT lp.id AS payment_id, lp.due_date, lp.amount_due, lp.amount_paid,
                 DATEDIFF(CURDATE(), lp.due_date) AS days_overdue,
-                l.id AS loan_id, l.total_repayable, l.amount_repaid,
+                l.id AS loan_id, l.client_id AS client_id,
+                l.total_repayable, l.amount_repaid,
                 c.full_name AS client_name,
                 u.email AS client_email
            FROM loan_payments lp

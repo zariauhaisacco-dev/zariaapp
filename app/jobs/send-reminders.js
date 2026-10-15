@@ -36,7 +36,8 @@ const STAGES = [3, 1, 0]; // days until due
     for (const stage of STAGES) {
       const [rows] = await db.query(
         `SELECT lp.id AS payment_id, lp.due_date, lp.amount_due, lp.amount_paid,
-                l.id AS loan_id, l.total_repayable, l.amount_repaid,
+                l.id AS loan_id, l.client_id AS client_id,
+                l.total_repayable, l.amount_repaid,
                 c.full_name AS client_name,
                 u.email AS client_email
            FROM loan_payments lp
