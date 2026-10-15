@@ -2,16 +2,19 @@
 (function () {
   'use strict';
 
-  function $(sel) { return document.querySelector(sel); }
-
-  function setText(sel, text) {
-    var el = document.querySelector(sel);
+  function set(id, text) {
+    var el = document.getElementById(id);
     if (el && text) el.textContent = text;
   }
 
-  function setHtml(sel, html) {
-    var el = document.querySelector(sel);
+  function setHtml(id, html) {
+    var el = document.getElementById(id);
     if (el) el.innerHTML = html;
+  }
+
+  function setHref(id, href) {
+    var el = document.getElementById(id);
+    if (el && href) el.href = href;
   }
 
   fetch('/api/branding', { credentials: 'same-origin' })
@@ -19,62 +22,51 @@
     .then(function (b) {
       if (!b) return;
 
-      // 1. Nav brand — swap "Zaria" text and inject logo image
-      var navBrand = document.querySelector('.land-brand');
-      if (navBrand) {
-        var markEl = navBrand.querySelector('.land-brand-mark');
-        var wordEl = navBrand.querySelector('.land-brand-word');
-        if (markEl && b.logo_url) {
-          markEl.innerHTML = '<img src="' + b.logo_url + '?v=' + Date.now() + '" alt="" style="width:100%;height:100%;object-fit:contain">';
-          markEl.style.background = 'transparent';
-          markEl.style.padding = '0';
-          markEl.style.overflow = 'hidden';
-        }
-        if (wordEl && b.sacco_name) {
-          wordEl.textContent = b.sacco_name;
-        }
-      }
+      var logoSrc = b.logo_url ? (b.logo_url + '?v=' + Date.now()) : '/logo.png';
 
-      // 2. Colors — set CSS custom properties on :root
-      if (b.colors) {
-        var root = document.documentElement;
-        if (b.colors.primary)    root.style.setProperty('--land-accent-primary', b.colors.primary);
-        if (b.colors.accent)     root.style.setProperty('--land-accent-gold',    b.colors.accent);
-        if (b.colors.background) root.style.setProperty('--land-bg',             b.colors.background);
-      }
-
-      // 3. Tagline / hero — optionally inject into the eyebrow or lede
-      var eyebrow = document.querySelector('.land-eyebrow span:last-child');
-      if (eyebrow && b.tagline) eyebrow.textContent = b.tagline;
-
-      // 4. Footer contact — find the footer and rebuild the contact line
-      var foot = document.querySelector('.land-foot');
-      if (foot && b.contact) {
-        var c = b.contact;
-        var line1 = [];
-        if (c.phone) line1.push('Talk to us · ' + c.phone);
-        if (c.whatsapp) line1.push('WhatsApp ' + c.whatsapp);
-        if (c.email) line1.push('<a href="mailto:' + c.email + '">' + c.email + '</a>');
-
-        var line2 = [];
-        if (c.location) line2.push(c.location);
-        if (c.hours) line2.push(c.hours);
-
-        var html = '';
-        if (line1.length) html += '<div style="margin-bottom:8px">' + line1.join(' · ') + '</div>';
-        if (line2.length) html += '<div style="margin-bottom:8px">' + line2.join(' · ') + '</div>';
-        html += '<div>© <span id="year"></span> ' + (b.sacco_name || 'Zaria Uhai SACCO') + ' · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></div>';
-
-        foot.innerHTML = html;
-
-        // Re-apply year
-        var yr = document.getElementById('year');
-        if (yr) yr.textContent = new Date().getFullYear();
-      }
-
-      // 5. Page title
+      // Brand name
       if (b.sacco_name) {
+        set('brandName', b.sacco_name);
+        set('heroName', b.sacco_name);
+        set('footName', b.sacco_name);
         document.title = b.sacco_name + (b.tagline ? ' — ' + b.tagline : '');
+      }
+
+      // Tagline + mission
+      if (b.tagline) set('heroTagline', b.tagline);
+      if (b.mission_short) set('heroMission', b.mission_short);
+
+      // Logo
+      setHtml('brandLogo', '<img src="' + logoSrc + '" alt="">');
+      setHtml('heroLogo', ''); // clear
+      var heroEl = document.getElementById('heroLogo');
+      if (heroEl) heroEl.src = logoSrc;
+
+      // Colors — set CSS custom properties
+      if (b.colors) {
+        var r = document.documentElement;
+        if (b.colors.primary)    r.style.setProperty('--brand-primary', b.colors.primary);
+        if (b.colors.accent)     r.style.setProperty('--brand-accent',  b.colors.accent);
+        if (b.colors.background) r.style.setProperty('--brand-background', b.colors.background);
+      }
+
+      // Contact
+      if (b.contact) {
+        var c = b.contact;
+        if (c.phone)    set('footPhone', c.phone);
+        if (c.whatsapp) set('footWhatsapp', c.whatsapp);
+        if (c.email) {
+          set('footEmail', c.email);
+          setHref('footEmailLink', 'mailto:' + c.email);
+        }
+        if (c.location) set('footLocation', c.location);
+        if (c.hours)    set('footHours', c.hours);
+      }
+
+      // Meta theme-color
+      if (b.colors && b.colors.primary) {
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', b.colors.primary);
       }
     })
     .catch(function (err) {
