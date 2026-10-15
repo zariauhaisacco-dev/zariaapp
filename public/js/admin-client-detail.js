@@ -58,7 +58,12 @@
       '<div class="kv-row"><span class="kv-label">Phone</span><span class="kv-value">' + escapeHtml(c.phone) + '</span></div>' +
       '<div class="kv-row"><span class="kv-label">National ID</span><span class="kv-value">' + escapeHtml(c.national_id || '—') + '</span></div>' +
       '<div class="kv-row"><span class="kv-label">Client ID</span><span class="kv-value">#' + c.id + '</span></div>' +
-      '<div class="kv-row"><span class="kv-label">User ID</span><span class="kv-value">#' + c.user_id + '</span></div>';
+      '<div class="kv-row"><span class="kv-label">User ID</span><span class="kv-value">#' + c.user_id + '</span></div>' +
+      '<div class="kv-row"><span class="kv-label">ID document</span><span class="kv-value">' +
+        (c.has_id_document
+          ? '<a id="idDocLink" href="/api/admin/clients/' + c.id + '/id-document" target="_blank" rel="noopener" style="color:#0B1F3A;text-decoration:underline">View document</a>'
+          : '<span class="muted">Not uploaded</span>') +
+      '</span></div>';
 
     // Danger zone labels
     $('toggleStatusLabel').textContent = c.status === 'active' ? 'Suspend client' : 'Activate client';

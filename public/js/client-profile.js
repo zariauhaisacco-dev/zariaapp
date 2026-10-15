@@ -183,10 +183,92 @@
   }
 
   // ---------------------------------------------------------------
+  // ID document
+  // ---------------------------------------------------------------
+  function wireIdDocUpload() {
+    var input = $('idDocInput');
+    var chooseBtn = $('chooseIdDocBtn');
+    var uploadBtn = $('uploadIdDocBtn');
+    var status = $('idDocStatus');
+    var viewBtn = $('viewIdDocBtn');
+    if (!input || !chooseBtn || !uploadBtn) return;
+
+    function refreshStatus() {
+      fetch('/api/me/profile-info', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : {}; })
+        .then(function (d) {
+          if (d.has_id_document) {
+            var when = d.id_document_uploaded_at ? new Date(d.id_document_uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+            if (status) status.textContent = 'Uploaded' + (when ? ' on ' + when : '') + '. You can replace it below.';
+            if (viewBtn) viewBtn.style.display = 'inline-block';
+          } else {
+            if (status) status.textContent = 'No document uploaded yet.';
+            if (viewBtn) viewBtn.style.display = 'none';
+          }
+        })
+        .catch(function () {
+          if (status) status.textContent = 'Could not load status.';
+        });
+    }
+
+    chooseBtn.addEventListener('click', function () { input.click(); });
+
+    input.addEventListener('change', function () {
+      var f = input.files && input.files[0];
+      if (!f) { uploadBtn.disabled = true; return; }
+      if (f.size > 5 * 1024 * 1024) {
+        showAlert('error', 'File is too large (max 5 MB)');
+        input.value = '';
+        uploadBtn.disabled = true;
+        return;
+      }
+      uploadBtn.disabled = false;
+    });
+
+    uploadBtn.addEventListener('click', async function () {
+      var f = input.files && input.files[0];
+      if (!f) return;
+
+      uploadBtn.disabled = true;
+      var oldText = uploadBtn.textContent;
+      uploadBtn.textContent = 'Uploading…';
+
+      try {
+        var fd = new FormData();
+        fd.append('document', f);
+
+        var res = await fetch('/api/me/id-document', {
+          method: 'POST',
+          credentials: 'same-origin',
+          body: fd,
+        });
+        var data = await res.json();
+
+        if (!res.ok) {
+          showAlert('error', data.error || 'Upload failed');
+          uploadBtn.disabled = false;
+          return;
+        }
+
+        input.value = '';
+        showAlert('success', 'ID document uploaded.');
+        refreshStatus();
+      } catch (err) {
+        showAlert('error', 'Network error. Please try again.');
+      } finally {
+        uploadBtn.textContent = oldText;
+      }
+    });
+
+    refreshStatus();
+  }
+
+  // ---------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', function () {
     wireSidebar();
     wireAvatar();
     wirePasswordForm();
     wirePhotoUpload();
+    wireIdDocUpload();
   });
 })();

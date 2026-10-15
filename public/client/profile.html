@@ -75,6 +75,22 @@
 
     <section class="card">
       <div class="card-head">
+        <h2 class="card-title">National ID document</h2>
+      </div>
+      <div class="card-body">
+        <p class="muted small" id="idDocStatus">Checking…</p>
+        <div class="photo-actions" style="margin-top:10px">
+          <input type="file" id="idDocInput" accept="image/jpeg,image/png,application/pdf" hidden>
+          <button type="button" class="btn-sm btn-outline" id="chooseIdDocBtn">Choose file</button>
+          <button type="button" class="btn-sm btn-amber" id="uploadIdDocBtn" disabled>Upload</button>
+          <a href="/api/me/id-document" target="_blank" rel="noopener" class="btn-sm btn-outline" id="viewIdDocBtn" style="display:none;text-decoration:none">View current</a>
+          <p class="muted small">JPG, PNG, or PDF. Max 5 MB. Stored securely.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
         <h2 class="card-title">Change password</h2>
       </div>
       <div class="card-body">

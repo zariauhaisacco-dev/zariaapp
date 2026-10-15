@@ -657,6 +657,115 @@ router.get('/notifications', authenticate, clientOnly, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
+// POST /id-document — upload or replace own national ID
+// ---------------------------------------------------------------
+const idDocLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => 'idoc:' + (req.user ? req.user.id : req.ip),
+  message: { error: 'Too many uploads. Try again in 15 minutes.' },
+});
+
+function handleIdDocMulterError(req, res, next) {
+  uploads.uploadIdDocument(req, res, function (err) {
+    if (err) {
+      console.error('[me/id-document] multer:', err.message);
+      var msg = 'Upload failed';
+      if (/File too large/i.test(err.message)) msg = 'File is too large (max 5 MB)';
+      else if (/Unsupported file type/i.test(err.message)) msg = 'Only JPG, PNG, or PDF allowed';
+      return res.status(400).json({ error: msg });
+    }
+    next();
+  });
+}
+
+router.post('/id-document', authenticate, clientOnly, idDocLimiter, handleIdDocMulterError, async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const finalAbs = req.file.path;
+    const finalRel = uploads.relFor(req.file.filename);
+
+    // Delete old document (if any) unless it's the same path
+    const [rows] = await db.query(
+      'SELECT id_document_url FROM clients WHERE id = ? LIMIT 1',
+      [req.clientId]
+    );
+    if (rows.length && rows[0].id_document_url && rows[0].id_document_url !== finalRel) {
+      uploads.deleteFile(rows[0].id_document_url);
+    }
+
+    await db.query(
+      'UPDATE clients SET id_document_url = ?, id_document_uploaded_at = NOW() WHERE id = ?',
+      [finalRel, req.clientId]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'client',
+      action: 'id_document.uploaded',
+      entityType: 'client',
+      entityId: req.clientId,
+      newValues: { filename: req.file.filename, size: req.file.size },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({ ok: true, url: '/api/me/id-document?v=' + Date.now() });
+  } catch (err) {
+    console.error('[me/id-document]', err.message);
+    res.status(500).json({ error: 'Could not save document' });
+  }
+});
+
+// ---------------------------------------------------------------
+// GET /id-document — stream own national ID
+// ---------------------------------------------------------------
+router.get('/id-document', authenticate, clientOnly, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT id_document_url FROM clients WHERE id = ? LIMIT 1',
+      [req.clientId]
+    );
+    if (!rows.length || !rows[0].id_document_url) {
+      return res.status(404).end();
+    }
+    const rel = rows[0].id_document_url;
+    uploads.streamFile(rel, res, uploads.contentTypeFor(rel));
+  } catch (err) {
+    console.error('[me/id-document get]', err.message);
+    res.status(500).json({ error: 'Could not load document' });
+  }
+});
+
+// ---------------------------------------------------------------
+// GET /profile-info — non-sensitive profile info (has ID doc, photo, etc.)
+// ---------------------------------------------------------------
+router.get('/profile-info', authenticate, clientOnly, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT id_document_url IS NOT NULL AS has_id_document,
+              id_document_uploaded_at,
+              profile_photo_url IS NOT NULL AS has_photo
+         FROM clients WHERE id = ? LIMIT 1`,
+      [req.clientId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Client not found' });
+    const r = rows[0];
+    res.json({
+      has_id_document: !!r.has_id_document,
+      id_document_uploaded_at: r.id_document_uploaded_at,
+      has_photo: !!r.has_photo,
+    });
+  } catch (err) {
+    console.error('[me/profile-info]', err.message);
+    res.status(500).json({ error: 'Could not load profile info' });
+  }
+});
+
+// ---------------------------------------------------------------
 // GET /statements — list of client's loans (for statements page)
 // ---------------------------------------------------------------
 router.get('/statements', authenticate, clientOnly, async (req, res) => {

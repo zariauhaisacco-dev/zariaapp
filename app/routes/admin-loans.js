@@ -6,6 +6,7 @@ const audit = require('../services/audit');
 const email = require('../services/email');
 const push = require('../services/push');
 const shares = require('../services/shares');
+const uploads = require('../services/uploads');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -215,6 +216,9 @@ router.get('/clients/:id', async (req, res) => {
     const [rows] = await db.query(
       `SELECT c.id, c.user_id, c.full_name, c.phone, c.national_id, c.status,
               c.created_at, c.created_by,
+              c.id_document_url IS NOT NULL AS has_id_document,
+              c.id_document_uploaded_at,
+              c.profile_photo_url IS NOT NULL AS has_photo,
               u.email, u.must_change_password,
               (SELECT COUNT(*) FROM loans l WHERE l.client_id = c.id) AS total_loans,
               (SELECT COUNT(*) FROM loans l WHERE l.client_id = c.id AND l.status IN ('active','overdue')) AS active_loans,
@@ -243,6 +247,37 @@ router.get('/clients/:id', async (req, res) => {
   } catch (err) {
     console.error('[admin client detail]', err.message);
     res.status(500).json({ error: 'Could not load client' });
+  }
+});
+
+// Admin: view a client's ID document
+router.get('/clients/:id/id-document', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+
+    const [rows] = await db.query(
+      'SELECT id_document_url FROM clients WHERE id = ? LIMIT 1',
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Client not found' });
+    if (!rows[0].id_document_url) return res.status(404).json({ error: 'No document uploaded' });
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'id_document.viewed',
+      entityType: 'client',
+      entityId: id,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    const rel = rows[0].id_document_url;
+    uploads.streamFile(rel, res, uploads.contentTypeFor(rel));
+  } catch (err) {
+    console.error('[admin id-document]', err.message);
+    res.status(500).json({ error: 'Could not load document' });
   }
 });
 
