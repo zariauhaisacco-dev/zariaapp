@@ -12,6 +12,7 @@ const email = require('../services/email');
 const push = require('../services/push');
 
 const STAGES = [1, 7, 14, 30];
+const NEXT_STAGE = { 1: 7, 7: 14, 14: 30, 30: 9999999 };
 
 (async () => {
   console.log('[escalate] start ' + new Date().toISOString());
@@ -45,10 +46,10 @@ const STAGES = [1, 7, 14, 30];
            LEFT JOIN escalation_log el ON el.loan_payment_id = lp.id AND el.stage_days = ?
           WHERE lp.status IN ('pending','partial','overdue')
             AND DATEDIFF(CURDATE(), lp.due_date) >= ?
-            AND DATEDIFF(CURDATE(), lp.due_date) < ? + 7
+            AND DATEDIFF(CURDATE(), lp.due_date) < ?
             AND l.status IN ('active','overdue')
             AND el.id IS NULL`,
-        [stage, stage, stage]
+        [stage, stage, NEXT_STAGE[stage]]
       );
 
       for (const r of rows) {
