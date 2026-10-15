@@ -1092,3 +1092,55 @@
 .photo-actions .muted {
   margin: 0;
 }
+
+
+/* ============ Notification bell dropdown ============ */
+
+.notif-wrap {
+  position: relative;
+}
+
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--line-1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(11, 31, 58, 0.14);
+  padding: 6px 0;
+  z-index: 60;
+}
+.notif-panel[hidden] { display: none; }
+
+.notif-item {
+  display: block;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: var(--ink-800);
+  font-size: 13px;
+  border-bottom: 1px solid var(--line-1);
+  transition: background 90ms;
+}
+.notif-item:last-child { border-bottom: 0; }
+.notif-item:hover { background: var(--surface-2); }
+
+.notif-title {
+  display: block;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.notif-empty {
+  padding: 20px 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-400);
+}
+
+/* Only show the red badge dot when there are items */
+.icon-btn.has-badge::after { display: none; }
+.icon-btn.has-badge.has-items::after { display: block; }

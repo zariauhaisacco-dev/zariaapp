@@ -22,6 +22,7 @@ const adminSettings = require('./app/routes/admin-settings');
 const adminSavings = require('./app/routes/admin-savings');
 const adminShares = require('./app/routes/admin-shares');
 const adminSearch = require('./app/routes/admin-search');
+const adminNotifications = require('./app/routes/admin-notifications');
 const adminLoans = require('./app/routes/admin-loans');
 const meRoutes = require('./app/routes/me');
 const meSavings = require('./app/routes/me-savings');
@@ -130,6 +131,7 @@ app.use('/api/admin/savings', adminSavings);
 app.use('/api/admin/shares', adminShares);
 app.use('/api/admin/dividends', adminDividends);
 app.use('/api/admin/search', adminSearch);
+app.use('/api/admin/notifications', adminNotifications);
 app.use('/api/admin', adminLoans);
 
 app.use('/api/me', meRoutes);

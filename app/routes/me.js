@@ -588,6 +588,75 @@ router.get('/photo', authenticate, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
+// GET /notifications — client notifications
+// ---------------------------------------------------------------
+router.get('/notifications', authenticate, clientOnly, async (req, res) => {
+  try {
+    const items = [];
+
+    // Pending loan request
+    const [reqs] = await db.query(
+      `SELECT COUNT(*) AS n FROM loan_requests WHERE client_id = ? AND status = 'pending'`,
+      [req.clientId]
+    );
+    if (reqs[0].n > 0) {
+      items.push({
+        type: 'pending_request',
+        title: 'Your loan request is awaiting review',
+        href: '/client/loans',
+      });
+    }
+
+    // Overdue payments
+    const [od] = await db.query(
+      `SELECT COUNT(*) AS n, MIN(l.id) AS loan_id
+         FROM loan_payments lp
+         JOIN loans l ON l.id = lp.loan_id
+        WHERE l.client_id = ? AND lp.status = 'overdue'`,
+      [req.clientId]
+    );
+    if (od[0].n > 0) {
+      items.push({
+        type: 'overdue',
+        title: od[0].n + ' overdue payment' + (od[0].n === 1 ? '' : 's'),
+        href: od[0].loan_id ? '/client/loans/' + od[0].loan_id : '/client/loans',
+      });
+    }
+
+    // Due within 7 days
+    const [due] = await db.query(
+      `SELECT lp.amount_due, lp.amount_paid, lp.due_date,
+              DATEDIFF(lp.due_date, CURDATE()) AS days_left,
+              l.id AS loan_id
+         FROM loan_payments lp
+         JOIN loans l ON l.id = lp.loan_id
+        WHERE l.client_id = ?
+          AND lp.status IN ('pending','partial')
+          AND lp.due_date >= CURDATE()
+          AND lp.due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+        ORDER BY lp.due_date ASC
+        LIMIT 1`,
+      [req.clientId]
+    );
+    if (due.length) {
+      const remaining = Number(due[0].amount_due) - Number(due[0].amount_paid);
+      const d = due[0].days_left;
+      items.push({
+        type: 'due_soon',
+        title: 'KES ' + Math.round(remaining).toLocaleString() + ' due ' +
+               (d === 0 ? 'today' : (d === 1 ? 'tomorrow' : 'in ' + d + ' days')),
+        href: '/client/loans/' + due[0].loan_id,
+      });
+    }
+
+    res.json({ count: items.length, items });
+  } catch (err) {
+    console.error('[me/notifications]', err.message);
+    res.status(500).json({ error: 'Could not load notifications' });
+  }
+});
+
+// ---------------------------------------------------------------
 // GET /statements — list of client's loans (for statements page)
 // ---------------------------------------------------------------
 router.get('/statements', authenticate, clientOnly, async (req, res) => {

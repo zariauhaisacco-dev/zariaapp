@@ -238,6 +238,58 @@
   }
 
   // ---------------------------------------------------------------
+  // Notifications
+  // ---------------------------------------------------------------
+  function wireNotifications() {
+    var btn = $('notifBtn');
+    var panel = $('notifPanel');
+    if (!btn || !panel) return;
+
+    function render(data) {
+      var items = (data && data.items) || [];
+      if (!items.length) {
+        panel.innerHTML = '<div class="notif-empty">You\'re all caught up.</div>';
+      } else {
+        panel.innerHTML = items.map(function (it) {
+          return '<a class="notif-item" href="' + escapeHtml(it.href) + '">' +
+                   '<span class="notif-title">' + escapeHtml(it.title) + '</span>' +
+                 '</a>';
+        }).join('');
+      }
+    }
+
+    function refresh() {
+      fetch('/api/me/notifications', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : { count: 0, items: [] }; })
+        .then(function (d) {
+          var count = Number(d.count) || 0;
+          btn.classList.toggle('has-items', count > 0);
+          render(d);
+        })
+        .catch(function () {
+          btn.classList.remove('has-items');
+          panel.innerHTML = '<div class="notif-empty">Could not load.</div>';
+        });
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      panel.hidden = !panel.hidden;
+      if (!panel.hidden) refresh();
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!panel.hidden && !e.target.closest('.notif-wrap')) panel.hidden = true;
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) panel.hidden = true;
+    });
+
+    refresh();
+  }
+
+  // ---------------------------------------------------------------
   // Bootstrap
   // ---------------------------------------------------------------
 
@@ -249,6 +301,7 @@
       if (me.user.role !== 'client') { window.location.replace('/admin/dashboard'); return; }
 
       wireAvatar(me.user);
+      wireNotifications();
 
       var res = await fetch('/api/me/summary', { credentials: 'same-origin' });
       if (!res.ok) {
