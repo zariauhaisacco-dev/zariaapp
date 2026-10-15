@@ -21,7 +21,8 @@
     </div>
     <div class="topbar-search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="text" placeholder="Search clients, loans, transactions…" aria-label="Search">
+      <input type="text" id="global-search" placeholder="Search clients, loans, transactions…" aria-label="Search" autocomplete="off" spellcheck="false">
+      <div id="search-results" class="search-results" hidden></div>
     </div>
     <div class="topbar-actions">
       <button class="icon-btn" aria-label="Help">

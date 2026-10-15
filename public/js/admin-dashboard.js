@@ -448,4 +448,130 @@
       if (e.key === 'Escape') closeDrawer();
     });
   })();
+
+  // ---------------------------------------------------------------
+  // Global search (topbar)
+  // ---------------------------------------------------------------
+  (function () {
+    var input = document.getElementById('global-search');
+    var panel = document.getElementById('search-results');
+    if (!input || !panel) return;
+
+    var debounceTimer = null;
+    var currentQuery = '';
+    var lastResults = null;
+
+    function hide() {
+      panel.hidden = true;
+      panel.innerHTML = '';
+      currentQuery = '';
+      lastResults = null;
+    }
+
+    function buildHref(entity, row) {
+      if (entity === 'client') return '/admin/client-detail.html?id=' + row.id;
+      if (entity === 'loan')   return '/admin/loan-detail.html?id=' + row.id;
+      if (entity === 'transaction') {
+        var ref = row.mpesa_receipt || row.reference || row.id;
+        return '/admin/transactions.html?q=' + encodeURIComponent(ref);
+      }
+      return '/admin/dashboard.html';
+    }
+
+    function renderSection(title, entity, rows) {
+      if (!rows.length) return '';
+      var html = '<div class="search-section"><div class="search-section-title">' + escapeHtml(title) + '</div>';
+      rows.forEach(function (row) {
+        var name, meta, badge, statusVal;
+        if (entity === 'client') {
+          name = row.full_name;
+          meta = row.phone || '';
+          statusVal = row.status || 'active';
+          badge = statusVal;
+        } else if (entity === 'loan') {
+          name = 'Loan #' + row.id + ' — ' + row.client_name;
+          meta = 'KES ' + fmtMoney(row.principal);
+          statusVal = row.status || '';
+          badge = statusVal;
+        } else {
+          name = row.type + ' — ' + row.client_name;
+          meta = 'KES ' + fmtMoney2(row.amount) + (row.mpesa_receipt ? ' · ' + row.mpesa_receipt : '');
+          statusVal = '';
+          badge = '';
+        }
+        html += '<a class="search-result" href="' + buildHref(entity, row) + '">' +
+          '<span class="search-result-main">' +
+            '<span class="search-result-name">' + escapeHtml(name) + '</span>' +
+            (meta ? ' <span class="search-result-meta">' + escapeHtml(meta) + '</span>' : '') +
+          '</span>' +
+          (badge ? '<span class="search-result-badge" data-status="' + escapeHtml(statusVal) + '">' + escapeHtml(badge) + '</span>' : '') +
+        '</a>';
+      });
+      html += '</div>';
+      return html;
+    }
+
+    function render(data) {
+      var total = (data.clients || []).length + (data.loans || []).length + (data.transactions || []).length;
+      if (total === 0) {
+        panel.innerHTML = '<div class="search-empty">No matches for “' + escapeHtml(data.query || '') + '”</div>';
+        panel.hidden = false;
+        return;
+      }
+      var html = '';
+      html += renderSection('Clients', 'client', data.clients || []);
+      html += renderSection('Loans', 'loan', data.loans || []);
+      html += renderSection('Transactions', 'transaction', data.transactions || []);
+      panel.innerHTML = html;
+      panel.hidden = false;
+    }
+
+    function search(q) {
+      currentQuery = q;
+      fetch('/api/admin/search?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          // Ignore stale responses (query changed while in-flight)
+          if (currentQuery !== q) return;
+          if (data.error) {
+            panel.innerHTML = '<div class="search-empty">' + escapeHtml(data.error) + '</div>';
+            panel.hidden = false;
+            return;
+          }
+          lastResults = data;
+          render(data);
+        })
+        .catch(function () {
+          panel.innerHTML = '<div class="search-empty">Search failed</div>';
+          panel.hidden = false;
+        });
+    }
+
+    input.addEventListener('input', function () {
+      var q = input.value.trim();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (q.length < 2) {
+        hide();
+        return;
+      }
+      debounceTimer = setTimeout(function () { search(q); }, 300);
+    });
+
+    input.addEventListener('focus', function () {
+      if (input.value.trim().length >= 2 && !lastResults) {
+        search(input.value.trim());
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.topbar-search')) hide();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) {
+        hide();
+        input.blur();
+      }
+    });
+  })();
 })();
