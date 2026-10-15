@@ -251,8 +251,9 @@ async function getSettings() {
   };
 }
 
-async function updateSetting(key, value, userId) {
-  await db.query(
+async function updateSetting(key, value, userId, externalConn = null) {
+  const conn = externalConn || db;
+  await conn.query(
     `INSERT INTO app_settings (setting_key, setting_value, updated_by)
      VALUES (?, ?, ?)
      ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_by = VALUES(updated_by)`,

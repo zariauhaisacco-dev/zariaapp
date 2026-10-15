@@ -140,13 +140,18 @@ const eligSchema = Joi.object({
 });
 
 router.post('/eligibility', async (req, res) => {
-  try {
-    const { error, value } = eligSchema.validate(req.body);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+  const { error, value } = eligSchema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
 
-    await savings.updateSetting('loan_multiplier', value.loan_multiplier, req.user.id);
-    await savings.updateSetting('min_savings_ratio', value.min_savings_ratio, req.user.id);
-    await savings.updateSetting('require_savings_for_loan', value.require_savings_for_loan ? '1' : '0', req.user.id);
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await savings.updateSetting('loan_multiplier', value.loan_multiplier, req.user.id, conn);
+    await savings.updateSetting('min_savings_ratio', value.min_savings_ratio, req.user.id, conn);
+    await savings.updateSetting('require_savings_for_loan', value.require_savings_for_loan ? '1' : '0', req.user.id, conn);
+
+    await conn.commit();
 
     await audit.log({
       actorUserId: req.user.id,
@@ -160,8 +165,11 @@ router.post('/eligibility', async (req, res) => {
 
     res.json({ ok: true });
   } catch (err) {
+    try { await conn.rollback(); } catch (_) {}
     console.error('[settings eligibility update]', err.message);
     res.status(500).json({ error: 'Could not save settings' });
+  } finally {
+    conn.release();
   }
 });
 
