@@ -1,6 +1,8 @@
 const express = require('express');
+const Joi = require('joi');
 const db = require('../db');
 const push = require('../services/push');
+const audit = require('../services/audit');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -13,8 +15,33 @@ router.get('/public-key', (req, res) => {
   res.json({ publicKey: key });
 });
 
+// ---------------------------------------------------------------
+// Input schemas
+// ---------------------------------------------------------------
+
+const subscribeSchema = Joi.object({
+  subscription: Joi.object({
+    endpoint: Joi.string().uri().max(500).required(),
+    keys: Joi.object({
+      p256dh: Joi.string().required(),
+      auth: Joi.string().required(),
+    }).required(),
+  }).required(),
+});
+
+const unsubscribeSchema = Joi.object({
+  endpoint: Joi.string().uri().max(500).required(),
+});
+
+const testSchema = Joi.object({
+  client_id: Joi.number().integer().positive().optional(),
+});
+
 // Subscribe this device for a client
 router.post('/subscribe', async (req, res) => {
+  const { error, value } = subscribeSchema.validate(req.body || {}, { abortEarly: false });
+  if (error) return res.status(400).json({ error: 'Invalid input', details: error.details.map(d => d.message) });
+
   try {
     if (req.user.role !== 'client') {
       return res.status(403).json({ error: 'Only clients can subscribe' });
@@ -22,10 +49,7 @@ router.post('/subscribe', async (req, res) => {
     const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
     if (!cl.length) return res.status(404).json({ error: 'Client profile not found' });
 
-    const { subscription } = req.body;
-    if (!subscription) return res.status(400).json({ error: 'Missing subscription' });
-
-    await push.subscribe(cl[0].id, subscription, req.get('user-agent'));
+    await push.subscribe(cl[0].id, value.subscription, req.get('user-agent'));
     res.json({ ok: true });
   } catch (err) {
     console.error('[push subscribe]', err.message);
@@ -35,15 +59,15 @@ router.post('/subscribe', async (req, res) => {
 
 // Unsubscribe this device
 router.post('/unsubscribe', async (req, res) => {
+  const { error, value } = unsubscribeSchema.validate(req.body || {}, { abortEarly: false });
+  if (error) return res.status(400).json({ error: 'Invalid input', details: error.details.map(d => d.message) });
+
   try {
     if (req.user.role !== 'client') return res.status(403).json({ error: 'Only clients' });
     const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
     if (!cl.length) return res.status(404).json({ error: 'Client not found' });
 
-    const { endpoint } = req.body;
-    if (!endpoint) return res.status(400).json({ error: 'Missing endpoint' });
-
-    await push.unsubscribe(cl[0].id, endpoint);
+    await push.unsubscribe(cl[0].id, value.endpoint);
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -52,10 +76,12 @@ router.post('/unsubscribe', async (req, res) => {
 
 // Admin test send (or "send test to my own client account" for testing)
 router.post('/test', async (req, res) => {
+  const { error, value } = testSchema.validate(req.body || {}, { abortEarly: false });
+  if (error) return res.status(400).json({ error: 'Invalid input', details: error.details.map(d => d.message) });
+
   try {
     if (req.user.role === 'admin') {
-      // Admin can send to a specific client by client_id
-      const clientId = Number(req.body.client_id);
+      const clientId = value.client_id;
       if (!clientId) return res.status(400).json({ error: 'client_id required for admin test' });
       const result = await push.sendToClient(clientId, {
         title: 'Zaria test',
@@ -63,6 +89,18 @@ router.post('/test', async (req, res) => {
         url: '/client/dashboard',
         tag: 'test-' + Date.now(),
       });
+
+      await audit.log({
+        actorUserId: req.user.id,
+        actorRole: 'admin',
+        action: 'push.test_sent',
+        entityType: 'client',
+        entityId: clientId,
+        newValues: { sent: result.sent, removed: result.removed },
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
       return res.json({ ok: true, ...result });
     }
 
