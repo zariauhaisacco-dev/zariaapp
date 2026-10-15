@@ -220,20 +220,28 @@ router.post('/:id/reject', async (req, res) => {
   const { error, value } = rejectSchema.validate(req.body);
   if (error) return res.status(400).json({ error: 'Invalid input' });
 
+  const conn = await db.getConnection();
   try {
-    const [rows] = await db.query(
-      `SELECT * FROM loan_requests WHERE id = ? AND status = 'pending' LIMIT 1`,
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      `SELECT * FROM loan_requests WHERE id = ? AND status = 'pending' FOR UPDATE`,
       [requestId]
     );
-    if (!rows.length) return res.status(409).json({ error: 'Not pending or already processed' });
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(409).json({ error: 'Not pending or already processed' });
+    }
     const request = rows[0];
 
-    await db.query(
+    await conn.query(
       `UPDATE loan_requests
           SET status = 'rejected', rejection_reason = ?, reviewed_by = ?, reviewed_at = NOW()
         WHERE id = ?`,
       [value.reason, req.user.id, requestId]
     );
+
+    await conn.commit();
 
     await audit.log({
       actorUserId: req.user.id,
@@ -264,8 +272,11 @@ router.post('/:id/reject', async (req, res) => {
     }
     res.json({ ok: true });
   } catch (err) {
+    try { await conn.rollback(); } catch (_) {}
     console.error('[loan-request reject]', err.message);
     res.status(400).json({ error: err.message });
+  } finally {
+    conn.release();
   }
 });
 
