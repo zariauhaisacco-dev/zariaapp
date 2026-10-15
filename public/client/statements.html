@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Statements</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/client/dashboard">Overview</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">My account</div>
+        <a class="nav-item" href="/client/dashboard">Overview</a>
+        <a class="nav-item" href="/client/loans">My loans</a>
+        <a class="nav-item" href="/client/savings">My savings</a>
+        <a class="nav-item" href="/client/transactions">Transactions</a>
+        <a class="nav-item" href="/client/shares">My shares</a>
+        <a class="nav-item" href="/client/dividends">My dividends</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Services</div>
+        <a class="nav-item" href="/client/request">Request a loan</a>
+        <a class="nav-item active" href="/client/statements">Statements</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Account</div>
+        <a class="nav-item" href="/client/profile">Profile</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Statements</h1>
+        <p class="page-sub">Download a PDF statement for each of your loans</p>
+      </div>
+    </div>
+
+    <div id="alert" class="alert" hidden></div>
+    <div id="loading" class="muted" style="padding:20px">Loading…</div>
+    <div id="list"></div>
+  </main>
+</div>
+
+<script src="/js/client-statements.js" defer></script>
+</body>
+</html>

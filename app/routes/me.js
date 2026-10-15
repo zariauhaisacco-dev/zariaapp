@@ -1,12 +1,15 @@
 const express = require('express');
 const Joi = require('joi');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const sharp = require('sharp');
 const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const loans = require('../services/loans');
 const audit = require('../services/audit');
 const savings = require('../services/savings');
 const email = require('../services/email');
+const uploads = require('../services/uploads');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -480,6 +483,151 @@ router.post('/password', authenticate, passwordLimiter, async (req, res) => {
   } catch (err) {
     console.error('[me/password]', err.message);
     res.status(500).json({ error: 'Could not change password' });
+  }
+});
+
+// ---------------------------------------------------------------
+// POST /photo — upload or replace own profile photo
+// ---------------------------------------------------------------
+const photoLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => 'ph:' + (req.user ? req.user.id : req.ip),
+  message: { error: 'Too many uploads. Try again in 15 minutes.' },
+});
+
+function handleMulterError(req, res, next) {
+  uploads.uploadPhoto(req, res, function (err) {
+    if (err) {
+      console.error('[me/photo] multer:', err.message);
+      var msg = 'Upload failed';
+      if (/File too large/i.test(err.message)) msg = 'File is too large (max 2 MB)';
+      else if (/Unsupported file type/i.test(err.message)) msg = 'Only JPG, PNG, or WebP allowed';
+      return res.status(400).json({ error: msg });
+    }
+    next();
+  });
+}
+
+router.post('/photo', authenticate, clientOnly, photoLimiter, handleMulterError, async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const rawAbs = req.file.path;
+    const rawName = req.file.filename;
+
+    // Always store as .jpg for consistency, regardless of input format.
+    // NOTE: we append a timestamp suffix because rawName might already end
+    // in .jpg, and sharp refuses to read and write the same file.
+    const finalName = rawName.replace(/\.[^.]+$/, '') + '-' + Date.now() + '.jpg';
+    const finalAbs = uploads.absPath('uploads/' + finalName);
+    const finalRel = 'uploads/' + finalName;
+
+    // Resize + re-encode as JPEG
+    await sharp(rawAbs)
+      .resize(400, 400, { fit: 'cover', position: 'center' })
+      .jpeg({ quality: 82, mozjpeg: true })
+      .toFile(finalAbs);
+
+    // If the ext changed, remove the raw upload
+    if (rawAbs !== finalAbs) {
+      try { fs.unlinkSync(rawAbs); } catch (_) {}
+    }
+
+    // Delete the old photo file (if any) unless it's the same path
+    const [rows] = await db.query(
+      'SELECT profile_photo_url FROM clients WHERE id = ? LIMIT 1',
+      [req.clientId]
+    );
+    if (rows.length && rows[0].profile_photo_url && rows[0].profile_photo_url !== finalRel) {
+      uploads.deleteFile(rows[0].profile_photo_url);
+    }
+
+    await db.query(
+      'UPDATE clients SET profile_photo_url = ? WHERE id = ?',
+      [finalRel, req.clientId]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'client',
+      action: 'profile_photo.uploaded',
+      entityType: 'client',
+      entityId: req.clientId,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({ ok: true, url: '/api/me/photo?v=' + Date.now() });
+  } catch (err) {
+    console.error('[me/photo]', err.message);
+    res.status(500).json({ error: 'Could not save photo' });
+  }
+});
+
+// ---------------------------------------------------------------
+// GET /photo — stream own profile photo
+// ---------------------------------------------------------------
+router.get('/photo', authenticate, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT profile_photo_url FROM clients WHERE user_id = ? LIMIT 1',
+      [req.user.id]
+    );
+    if (!rows.length || !rows[0].profile_photo_url) {
+      return res.status(404).end();
+    }
+    const rel = rows[0].profile_photo_url;
+    uploads.streamFile(rel, res, uploads.contentTypeFor(rel));
+  } catch (err) {
+    console.error('[me/photo get]', err.message);
+    res.status(500).json({ error: 'Could not load photo' });
+  }
+});
+
+// ---------------------------------------------------------------
+// GET /statements — list of client's loans (for statements page)
+// ---------------------------------------------------------------
+router.get('/statements', authenticate, clientOnly, async (req, res) => {
+  try {
+    const [loans] = await db.query(
+      `SELECT l.id, l.principal, l.total_repayable, l.amount_repaid,
+              l.interest_rate, l.term_months, l.status,
+              l.created_at, l.disbursed_at, l.closed_at,
+              p.name AS product_name
+         FROM loans l
+         LEFT JOIN loan_products p ON p.id = l.product_id
+        WHERE l.client_id = ?
+        ORDER BY l.id DESC`,
+      [req.clientId]
+    );
+
+    const out = loans.map(function (l) {
+      const total = Number(l.total_repayable);
+      const repaid = Number(l.amount_repaid);
+      return {
+        id: l.id,
+        principal: Number(l.principal),
+        total_repayable: total,
+        amount_repaid: repaid,
+        outstanding: Math.round((total - repaid) * 100) / 100,
+        progress_pct: total > 0 ? Math.round((repaid / total) * 100) : 0,
+        interest_rate: Number(l.interest_rate),
+        term_months: l.term_months,
+        status: l.status,
+        product_name: l.product_name,
+        created_at: l.created_at,
+        disbursed_at: l.disbursed_at,
+        closed_at: l.closed_at,
+      };
+    });
+
+    res.json({ loans: out });
+  } catch (err) {
+    console.error('[me/statements]', err.message);
+    res.status(500).json({ error: 'Could not load statements' });
   }
 });
 

@@ -111,6 +111,7 @@ const CLIENT_PAGES = [
   ['request', 'Request a loan'],
   ['statements', 'Statements'],
   ['settings', 'Preferences'],
+  ['profile', 'My profile'],
 ];
 
 function mount(app) {

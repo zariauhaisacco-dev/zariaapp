@@ -219,7 +219,17 @@
 
   function wireAvatar(user) {
     var av = $('avatarBtn');
-    av.textContent = user.email.charAt(0).toUpperCase();
+    // Show uploaded photo if one exists; otherwise fall back to initial
+    fetch('/api/me/photo', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('no photo');
+        av.classList.add('has-img');
+        av.innerHTML = '<img class="avatar-img" alt="" src="/api/me/photo?v=' + Date.now() + '">';
+      })
+      .catch(function () {
+        av.textContent = user.email.charAt(0).toUpperCase();
+      });
+
     av.addEventListener('click', async function () {
       if (!confirm('Sign out of Zaria?')) return;
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });

@@ -236,6 +236,14 @@ app.get('/client/dividends', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'client', 'dividends.html'));
 });
 
+app.get('/client/profile', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'client', 'profile.html'));
+});
+
+app.get('/client/statements', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'client', 'statements.html'));
+});
+
 // ============================================================
 // Public pages
 // ============================================================

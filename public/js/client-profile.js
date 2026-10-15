@@ -112,9 +112,81 @@
   }
 
   // ---------------------------------------------------------------
+  // Profile photo
+  // ---------------------------------------------------------------
+  function wirePhotoUpload() {
+    var input = $('photoInput');
+    var chooseBtn = $('choosePhotoBtn');
+    var uploadBtn = $('uploadPhotoBtn');
+    var preview = $('photoPreview');
+    if (!input || !chooseBtn || !uploadBtn || !preview) return;
+
+    // Load existing photo (if any) on page open
+    fetch('/api/me/photo', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) return;
+        preview.innerHTML = '<img alt="Profile photo" src="/api/me/photo?v=' + Date.now() + '">';
+      })
+      .catch(function () {});
+
+    chooseBtn.addEventListener('click', function () { input.click(); });
+
+    input.addEventListener('change', function () {
+      var f = input.files && input.files[0];
+      if (!f) { uploadBtn.disabled = true; return; }
+      if (f.size > 2 * 1024 * 1024) {
+        showAlert('error', 'File is too large (max 2 MB)');
+        input.value = '';
+        uploadBtn.disabled = true;
+        return;
+      }
+      var url = URL.createObjectURL(f);
+      preview.innerHTML = '<img alt="Preview" src="' + url + '">';
+      uploadBtn.disabled = false;
+    });
+
+    uploadBtn.addEventListener('click', async function () {
+      var f = input.files && input.files[0];
+      if (!f) return;
+
+      uploadBtn.disabled = true;
+      var oldText = uploadBtn.textContent;
+      uploadBtn.textContent = 'Uploading…';
+
+      try {
+        var fd = new FormData();
+        fd.append('photo', f);
+
+        var res = await fetch('/api/me/photo', {
+          method: 'POST',
+          credentials: 'same-origin',
+          body: fd,
+        });
+        var data = await res.json();
+
+        if (!res.ok) {
+          showAlert('error', data.error || 'Upload failed');
+          uploadBtn.disabled = false;
+          return;
+        }
+
+        preview.innerHTML = '<img alt="Profile photo" src="' + data.url + '">';
+        input.value = '';
+        showAlert('success', 'Profile photo updated.');
+      } catch (err) {
+        showAlert('error', 'Network error. Please try again.');
+      } finally {
+        uploadBtn.textContent = oldText;
+        uploadBtn.disabled = true; // re-disabled until next file chosen
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', function () {
     wireSidebar();
     wireAvatar();
     wirePasswordForm();
+    wirePhotoUpload();
   });
 })();

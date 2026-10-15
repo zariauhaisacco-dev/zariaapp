@@ -58,6 +58,23 @@
 
     <section class="card">
       <div class="card-head">
+        <h2 class="card-title">Profile photo</h2>
+      </div>
+      <div class="card-body">
+        <div class="photo-row">
+          <div id="photoPreview" class="avatar avatar-lg">?</div>
+          <div class="photo-actions">
+            <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" hidden>
+            <button type="button" class="btn-sm btn-outline" id="choosePhotoBtn">Choose photo</button>
+            <button type="button" class="btn-sm btn-amber" id="uploadPhotoBtn" disabled>Upload</button>
+            <p class="muted small">JPG, PNG, or WebP. Max 2 MB. Resized to 400×400.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
         <h2 class="card-title">Change password</h2>
       </div>
       <div class="card-body">

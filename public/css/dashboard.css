@@ -1041,3 +1041,54 @@
   color: var(--ink-400);
   text-align: center;
 }
+
+
+/* ============ Profile photo (client portal) ============ */
+
+.avatar.has-img,
+.avatar-lg.has-img {
+  padding: 0;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.avatar.has-img img,
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
+.avatar-lg {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink-400);
+  font-weight: 700;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.photo-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.photo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.photo-actions .muted {
+  margin: 0;
+}
