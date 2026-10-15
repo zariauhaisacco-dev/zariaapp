@@ -2,6 +2,7 @@ const express = require('express');
 const Joi = require('joi');
 const db = require('../db');
 const savings = require('../services/savings');
+const si      = require('../services/savings-interest');
 const audit = require('../services/audit');
 const push = require('../services/push');
 const { authenticate, requireRole } = require('../middleware/auth');
@@ -54,6 +55,16 @@ router.get('/accounts', async (req, res) => {
 });
 
 // Get one account with its transactions
+// Interest accrual summary (read-only, for admin dashboard)
+router.get('/interest-summary', async (req, res, next) => {
+  try {
+    const summary = await si.getAccrualSummary();
+    res.json(summary);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/accounts/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
