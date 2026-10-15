@@ -118,6 +118,54 @@
       </div>
     </section>
 
+    <section class="card" id="brandingCard" style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Branding</h2>
+          <p class="card-sub">Logo, name and messaging shown on the public landing page.</p>
+        </div>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+          <div style="flex:0 0 auto;text-align:center">
+            <div id="logoPreview" style="width:120px;height:140px;border:1px solid var(--line-1);border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;overflow:hidden">
+              <img id="logoImg" alt="" style="max-width:100%;max-height:100%;display:none">
+              <span id="logoPlaceholder" style="color:var(--ink-400);font-size:12px">No logo</span>
+            </div>
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+              <input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp" hidden>
+              <button type="button" class="btn-sm btn-outline" id="chooseLogoBtn">Upload logo</button>
+              <button type="button" class="btn-sm btn-outline" id="resetLogoBtn" style="display:none">Reset to default</button>
+            </div>
+            <p class="muted small" style="margin:8px 0 0;font-size:11px">PNG/JPG/WebP, max 2 MB.<br>Recommended: 400×460.</p>
+          </div>
+
+          <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:12px">
+            <div>
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">SACCO name</label>
+              <input type="text" id="brandingName" maxlength="120" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+            </div>
+            <div>
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Tagline</label>
+              <input type="text" id="brandingTagline" maxlength="200" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+            </div>
+            <div>
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Short mission (landing page)</label>
+              <textarea id="brandingMission" maxlength="300" rows="2" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:inherit"></textarea>
+            </div>
+            <div>
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Vision statement</label>
+              <textarea id="brandingVision" maxlength="500" rows="3" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:inherit"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button type="button" class="btn-sm btn-dark" id="saveBranding">Save branding</button>
+              <span id="brandingStatus" style="font-size:12.5px;color:var(--pos);display:none">Saved</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
         <!-- Loan eligibility rules -->
     <section class="card" id="eligibilityCard" style="margin-bottom:20px">
       <div class="card-head">

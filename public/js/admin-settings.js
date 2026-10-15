@@ -154,12 +154,127 @@
     } catch (e) { console.error(e); }
   }
 
+  // ---------------------------------------------------------------
+  // Branding
+  // ---------------------------------------------------------------
+  async function loadBranding() {
+    try {
+      var res = await fetch('/api/admin/settings/branding', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      var b = await res.json();
+
+      $('brandingName').value = b.sacco_name || '';
+      $('brandingTagline').value = b.tagline || '';
+      $('brandingMission').value = b.mission_short || '';
+      $('brandingVision').value = b.vision || '';
+
+      // Logo preview
+      var img = $('logoImg');
+      var placeholder = $('logoPlaceholder');
+      if (b.logo_url) {
+        img.src = '/api/branding/logo?v=' + Date.now();
+        img.onload = function () { img.style.display = 'block'; placeholder.style.display = 'none'; };
+        img.onerror = function () { img.style.display = 'none'; placeholder.style.display = 'block'; };
+        // Show reset button only if NOT the default
+        $('resetLogoBtn').style.display = (b.logo_url === 'logo.png') ? 'none' : 'inline-block';
+      } else {
+        img.style.display = 'none';
+        placeholder.style.display = 'block';
+        $('resetLogoBtn').style.display = 'none';
+      }
+    } catch (e) {
+      console.error('[branding load]', e.message);
+    }
+  }
+
+  function wireBranding() {
+    var saveBtn = $('saveBranding');
+    var chooseBtn = $('chooseLogoBtn');
+    var fileInput = $('logoInput');
+    var resetBtn = $('resetLogoBtn');
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async function () {
+        saveBtn.disabled = true;
+        var status = $('brandingStatus');
+        var body = {
+          sacco_name: $('brandingName').value.trim(),
+          tagline: $('brandingTagline').value.trim(),
+          mission_short: $('brandingMission').value.trim(),
+          vision: $('brandingVision').value.trim(),
+        };
+        try {
+          var res = await fetch('/api/admin/settings/branding', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          var data = await res.json();
+          if (!res.ok) {
+            alert(data.error || 'Could not save');
+          } else {
+            if (status) { status.style.display = 'inline'; setTimeout(function () { status.style.display = 'none'; }, 2000); }
+          }
+        } catch (e) {
+          alert('Network error');
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+    }
+
+    if (chooseBtn && fileInput) {
+      chooseBtn.addEventListener('click', function () { fileInput.click(); });
+      fileInput.addEventListener('change', async function () {
+        var f = fileInput.files && fileInput.files[0];
+        if (!f) return;
+        if (f.size > 2 * 1024 * 1024) { alert('File too large (max 2 MB)'); fileInput.value = ''; return; }
+        var fd = new FormData();
+        fd.append('photo', f);
+        try {
+          var res = await fetch('/api/admin/settings/logo', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: fd,
+          });
+          var data = await res.json();
+          if (!res.ok) { alert(data.error || 'Upload failed'); return; }
+          fileInput.value = '';
+          await loadBranding();
+        } catch (e) {
+          alert('Network error');
+        }
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', async function () {
+        if (!confirm('Reset logo to the default?')) return;
+        try {
+          var res = await fetch('/api/admin/settings/logo', {
+            method: 'DELETE',
+            credentials: 'same-origin',
+          });
+          var data = await res.json();
+          if (!res.ok) { alert(data.error || 'Could not reset'); return; }
+          await loadBranding();
+        } catch (e) {
+          alert('Network error');
+        }
+      });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    loadBranding();
+    wireBranding();
     loadEligibility();
   });
 
   // Since DOMContentLoaded may have already fired, also try immediately
   setTimeout(loadEligibility, 300);
+  setTimeout(loadBranding, 300);
 
   if ($('saveEligibility')) {
     $('saveEligibility').addEventListener('click', async function () {

@@ -3,6 +3,7 @@ const Joi = require('joi');
 const db = require('../db');
 const audit = require('../services/audit');
 const savings = require('../services/savings');
+const uploads = require('../services/uploads');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -172,5 +173,147 @@ router.post('/eligibility', async (req, res) => {
     conn.release();
   }
 });
+
+// ---------------------------------------------------------------
+// Branding (logo, name, tagline, mission, vision)
+// ---------------------------------------------------------------
+
+const brandingSchema = Joi.object({
+  sacco_name:    Joi.string().min(2).max(120).required(),
+  tagline:       Joi.string().max(200).allow('', null),
+  mission_short: Joi.string().max(300).allow('', null),
+  vision:        Joi.string().max(500).allow('', null),
+});
+
+router.get('/branding', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN ('sacco_name','tagline','logo_url','mission_short','vision')"
+    );
+    const map = {};
+    rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+    res.json({
+      sacco_name:    map.sacco_name    || '',
+      tagline:       map.tagline       || '',
+      logo_url:      map.logo_url      || '',
+      mission_short: map.mission_short || '',
+      vision:        map.vision        || '',
+    });
+  } catch (err) {
+    console.error('[settings branding get]', err.message);
+    res.status(500).json({ error: 'Could not load branding' });
+  }
+});
+
+router.post('/branding', async (req, res) => {
+  const { error, value } = brandingSchema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await savings.updateSetting('sacco_name', value.sacco_name, req.user.id, conn);
+    await savings.updateSetting('tagline', value.tagline || '', req.user.id, conn);
+    await savings.updateSetting('mission_short', value.mission_short || '', req.user.id, conn);
+    await savings.updateSetting('vision', value.vision || '', req.user.id, conn);
+
+    await conn.commit();
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'settings.branding_updated',
+      entityType: 'app_settings',
+      newValues: value,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    try { await conn.rollback(); } catch (_) {}
+    console.error('[settings branding update]', err.message);
+    res.status(500).json({ error: 'Could not save branding' });
+  } finally {
+    conn.release();
+  }
+});
+
+// POST /api/admin/settings/logo — upload new logo
+function handleLogoMulter(req, res, next) {
+  uploads.uploadPhoto(req, res, function (err) {
+    if (err) {
+      console.error('[settings logo] multer:', err.message);
+      var msg = 'Upload failed';
+      if (/File too large/i.test(err.message)) msg = 'File is too large (max 2 MB)';
+      else if (/Unsupported file type/i.test(err.message)) msg = 'Only JPG, PNG, or WebP allowed';
+      return res.status(400).json({ error: msg });
+    }
+    next();
+  });
+}
+
+router.post('/logo', handleLogoMulter, async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const [rows] = await db.query(
+      "SELECT setting_value FROM app_settings WHERE setting_key = 'logo_url' LIMIT 1"
+    );
+    const oldUrl = rows.length ? rows[0].setting_value : '';
+    if (oldUrl && oldUrl !== 'logo.png' && oldUrl !== req.file.filename) {
+      uploads.deleteFile(oldUrl);
+    }
+
+    const rel = uploads.relFor(req.file.filename);
+    await savings.updateSetting('logo_url', rel, req.user.id, null);
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'settings.logo_uploaded',
+      entityType: 'app_settings',
+      newValues: { filename: req.file.filename, size: req.file.size },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({ ok: true, url: '/api/branding/logo?v=' + Date.now() });
+  } catch (err) {
+    console.error('[settings logo]', err.message);
+    res.status(500).json({ error: 'Could not save logo' });
+  }
+});
+
+// DELETE /api/admin/settings/logo
+router.delete('/logo', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT setting_value FROM app_settings WHERE setting_key = 'logo_url' LIMIT 1"
+    );
+    const oldUrl = rows.length ? rows[0].setting_value : '';
+    if (oldUrl && oldUrl !== 'logo.png') {
+      uploads.deleteFile(oldUrl);
+    }
+
+    await savings.updateSetting('logo_url', 'logo.png', req.user.id, null);
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'settings.logo_reset',
+      entityType: 'app_settings',
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[settings logo delete]', err.message);
+    res.status(500).json({ error: 'Could not reset logo' });
+  }
+});
+
 
 module.exports = router;
