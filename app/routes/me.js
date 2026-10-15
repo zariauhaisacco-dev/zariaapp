@@ -1,5 +1,6 @@
 const express = require('express');
 const Joi = require('joi');
+const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const loans = require('../services/loans');
@@ -55,6 +56,15 @@ const requestLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => 'u:' + (req.user ? req.user.id : req.ip),
   message: { error: 'Too many loan requests. Try again in an hour.' },
+});
+
+const passwordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => 'pw:' + (req.user ? req.user.id : req.ip),
+  message: { error: 'Too many password change attempts. Try again in 15 minutes.' },
 });
 
 // ---------------------------------------------------------------
@@ -401,6 +411,75 @@ router.post('/loan-requests/:id/cancel', authenticate, clientOnly, async (req, r
   } catch (err) {
     console.error('[me/loan-request/cancel]', err.message);
     res.status(500).json({ error: 'Could not cancel' });
+  }
+});
+
+// ---------------------------------------------------------------
+// POST /password — change own password
+// ---------------------------------------------------------------
+const passwordSchema = Joi.object({
+  current_password: Joi.string().min(1).max(200).required(),
+  new_password: Joi.string().min(8).max(200).required()
+    .messages({ 'string.min': 'New password must be at least 8 characters' }),
+  confirm_password: Joi.string().valid(Joi.ref('new_password')).required()
+    .messages({ 'any.only': 'Passwords do not match' }),
+});
+
+router.post('/password', authenticate, passwordLimiter, async (req, res) => {
+  const ip = req.ip;
+  const ua = req.get('user-agent') || '';
+
+  const { error, value } = passwordSchema.validate(req.body, { abortEarly: false });
+  if (error) {
+    const details = error.details.map(d => ({ field: d.path.join('.'), message: d.message }));
+    return res.status(400).json({ error: 'Please check the form', details });
+  }
+
+  try {
+    const [rows] = await db.query(
+      'SELECT id, email, password_hash, role FROM users WHERE id = ? LIMIT 1',
+      [req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    const user = rows[0];
+
+    const ok = await bcrypt.compare(value.current_password, user.password_hash);
+    if (!ok) {
+      await audit.log({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: 'password.change_failed',
+        entityType: 'user',
+        entityId: user.id,
+        newValues: { reason: 'bad_current_password' },
+        ip, userAgent: ua,
+      });
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    if (value.new_password === value.current_password) {
+      return res.status(400).json({ error: 'New password must differ from current password' });
+    }
+
+    const newHash = await bcrypt.hash(value.new_password, 12);
+    await db.query(
+      'UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?',
+      [newHash, user.id]
+    );
+
+    await audit.log({
+      actorUserId: user.id,
+      actorRole: user.role,
+      action: 'password.changed',
+      entityType: 'user',
+      entityId: user.id,
+      ip, userAgent: ua,
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[me/password]', err.message);
+    res.status(500).json({ error: 'Could not change password' });
   }
 });
 
