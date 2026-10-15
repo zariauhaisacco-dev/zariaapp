@@ -139,7 +139,7 @@ function streamReceipt(res, data) {
     ['Loan total repayable', 'KES ' + fmtMoney(data.total_repayable)],
     ['Total repaid to date', 'KES ' + fmtMoney(data.amount_repaid)],
     ['Outstanding balance', 'KES ' + fmtMoney(data.outstanding)],
-    ['Loan status', data.loan_status.charAt(0).toUpperCase() + data.loan_status.slice(1)],
+    ['Loan status', (data.loan_status || '').charAt(0).toUpperCase() + (data.loan_status || '').slice(1)],
   ]);
 
   doc.moveDown(1);
@@ -364,7 +364,7 @@ function streamShareCertificate(res, data) {
   // Member name block
   doc.fillColor(COLORS.ink500).font(FONT_REG).fontSize(12).text('This is to certify that', { align: 'center' });
   doc.moveDown(0.5);
-  doc.fillColor(COLORS.ink).font(FONT_BOLD).fontSize(24).text(data.full_name.toUpperCase(), { align: 'center' });
+  doc.fillColor(COLORS.ink).font(FONT_BOLD).fontSize(24).text((data.full_name || '—').toUpperCase(), { align: 'center' });
   doc.moveDown(0.5);
   doc.fillColor(COLORS.ink500).font(FONT_REG).fontSize(12).text('of ' + (data.phone || '—'), { align: 'center' });
   doc.moveDown(1.5);

@@ -9,6 +9,32 @@ const router = express.Router();
 router.use(authenticate);
 
 // ---------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------
+
+// Avoid trying to write a JSON error after the PDF stream has started.
+// Once res.headersSent is true, the only correct move is to log and let
+// the (truncated) response finish.
+function safeError(res, status, message) {
+  if (res.headersSent) {
+    console.error('[pdf] error after headers sent:', message);
+    return;
+  }
+  res.status(status).json({ error: message });
+}
+
+// Verify the requester may access the target client's PDFs.
+// Admin: always. Client: only their own.
+async function verifyPdfAccess(req, targetClientId) {
+  if (req.user.role === 'admin') return true;
+  if (req.user.role === 'client') {
+    const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
+    return cl.length > 0 && cl[0].id === targetClientId;
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------
 // GET /api/receipts/:transactionId — receipt for one repayment
 // Access: admin (any) or the owning client
 // ---------------------------------------------------------------
@@ -32,12 +58,7 @@ router.get('/receipts/:transactionId', async (req, res) => {
     const t = rows[0];
 
     // Access check
-    let allowed = false;
-    if (req.user.role === 'admin') allowed = true;
-    if (req.user.role === 'client') {
-      const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
-      if (cl.length && cl[0].id === t.loan_client_id) allowed = true;
-    }
+    const allowed = await verifyPdfAccess(req, t.loan_client_id);
     if (!allowed) return res.status(403).json({ error: 'Not allowed' });
 
     const outstanding = Number(t.total_repayable) - Number(t.amount_repaid);
@@ -72,7 +93,7 @@ router.get('/receipts/:transactionId', async (req, res) => {
     });
   } catch (err) {
     console.error('[pdf receipt]', err.message);
-    res.status(500).json({ error: 'Could not generate receipt' });
+    safeError(res, 500, 'Could not generate receipt');
   }
 });
 
@@ -87,12 +108,7 @@ router.get('/statements/:loanId', async (req, res) => {
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
     // Access check
-    let allowed = false;
-    if (req.user.role === 'admin') allowed = true;
-    if (req.user.role === 'client') {
-      const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
-      if (cl.length && cl[0].id === loan.client_id) allowed = true;
-    }
+    const allowed = await verifyPdfAccess(req, loan.client_id);
     if (!allowed) return res.status(403).json({ error: 'Not allowed' });
 
     const state = await loans.computeLoanState(loanId);
@@ -149,7 +165,7 @@ router.get('/statements/:loanId', async (req, res) => {
     });
   } catch (err) {
     console.error('[pdf statement]', err.message);
-    res.status(500).json({ error: 'Could not generate statement' });
+    safeError(res, 500, 'Could not generate statement');
   }
 });
 
@@ -163,12 +179,7 @@ router.get('/agreements/:loanId', async (req, res) => {
     const loan = await loans.getLoanById(loanId);
     if (!loan) return res.status(404).json({ error: 'Loan not found' });
 
-    let allowed = false;
-    if (req.user.role === 'admin') allowed = true;
-    if (req.user.role === 'client') {
-      const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
-      if (cl.length && cl[0].id === loan.client_id) allowed = true;
-    }
+    const allowed = await verifyPdfAccess(req, loan.client_id);
     if (!allowed) return res.status(403).json({ error: 'Not allowed' });
 
     const schedule = await loans.getSchedule(loanId);
@@ -204,7 +215,7 @@ router.get('/agreements/:loanId', async (req, res) => {
     });
   } catch (err) {
     console.error('[pdf agreement]', err.message);
-    res.status(500).json({ error: 'Could not generate agreement' });
+    safeError(res, 500, 'Could not generate agreement');
   }
 });
 
@@ -217,13 +228,8 @@ router.get('/certificate/:clientId', async (req, res) => {
   try {
     const clientId = Number(req.params.clientId);
 
-    // Permission
-    let allowed = false;
-    if (req.user.role === 'admin') allowed = true;
-    if (req.user.role === 'client') {
-      const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
-      if (cl.length && cl[0].id === clientId) allowed = true;
-    }
+    // Access check
+    const allowed = await verifyPdfAccess(req, clientId);
     if (!allowed) return res.status(403).json({ error: 'Not allowed' });
 
     const shares = require('../services/shares');
@@ -256,7 +262,7 @@ router.get('/certificate/:clientId', async (req, res) => {
     });
   } catch (err) {
     console.error('[pdf certificate]', err.message);
-    res.status(500).json({ error: 'Could not generate certificate' });
+    safeError(res, 500, 'Could not generate certificate');
   }
 });
 
