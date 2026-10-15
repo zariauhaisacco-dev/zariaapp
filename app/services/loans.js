@@ -6,6 +6,17 @@
  *
  * Money is handled as JS numbers for computation but persisted as DECIMAL(15,2).
  * Amounts are rounded to 2 decimal places at write time.
+ *
+ * Interest model: FLAT.
+ *   total_repayable = principal * (1 + interest_rate)
+ *   Interest is not amortized. Each installment carries an equal share of
+ *   principal + interest, except the final installment absorbs rounding drift.
+ *   This matches the Kenyan SACCO convention and loan_products.interest_rate,
+ *   which is quoted as a flat rate over the entire term.
+ *
+ * Allocation rule: oldest-unpaid-first (FIFO).
+ *   Payments apply to installment_no ASC. Partial payments allowed. This is
+ *   deliberate (not interest-first) and is what clients see in statements.
  */
 
 const db = require('../db');
@@ -197,12 +208,36 @@ async function disburseLoan({
     await conn.beginTransaction();
 
     const [rows] = await conn.query(
-      'SELECT id, client_id, principal, status FROM loans WHERE id = ? FOR UPDATE',
+      'SELECT id, client_id, principal, total_repayable, status FROM loans WHERE id = ? FOR UPDATE',
       [loanId]
     );
     if (!rows.length) throw new Error('Loan not found');
     const loan = rows[0];
     if (loan.status !== 'approved') throw new Error('Loan must be approved before disbursement');
+
+    // Validate schedule before flipping to active.
+    // Guards against: missing schedule, drifted total, zero/negative rows.
+    const [schedCheck] = await conn.query(
+      `SELECT COUNT(*) AS n,
+              COALESCE(SUM(amount_due), 0) AS total,
+              SUM(CASE WHEN amount_due <= 0 THEN 1 ELSE 0 END) AS bad
+         FROM loan_payments
+        WHERE loan_id = ?`,
+      [loanId]
+    );
+    if (!schedCheck.length || schedCheck[0].n === 0) {
+      throw new Error('Loan has no schedule — cannot disburse');
+    }
+    if (schedCheck[0].bad > 0) {
+      throw new Error('Loan has zero/negative installments — cannot disburse');
+    }
+    const schedTotal = round2(Number(schedCheck[0].total));
+    const loanTotal  = round2(Number(loan.total_repayable));
+    if (Math.abs(schedTotal - loanTotal) > 0.01) {
+      throw new Error(
+        'Schedule total ' + schedTotal + ' does not match loan total ' + loanTotal
+      );
+    }
 
     await conn.query(
       `UPDATE loans
@@ -294,9 +329,14 @@ async function recordPayment({
 
       await conn.query(
         `UPDATE loan_payments
-            SET amount_paid = ?, status = ?, paid_at = ?
+            SET amount_paid = ?,
+                status = ?,
+                paid_at = CASE
+                            WHEN ? = 'paid' AND paid_at IS NULL THEN NOW()
+                            ELSE paid_at
+                          END
           WHERE id = ?`,
-        [newPaid, newStatus, fullyPaid ? new Date() : null, inst.id]
+        [newPaid, newStatus, newStatus, inst.id]
       );
 
       left = round2(left - apply);
@@ -425,11 +465,12 @@ async function markOverduePayments() {
   try {
     await conn.beginTransaction();
 
-    // Flag installments past due
+    // Flag installments past due. Both 'pending' (unpaid) and 'partial'
+    // (some payment received but still short) count as overdue.
     const [r1] = await conn.query(
       `UPDATE loan_payments
           SET status = 'overdue'
-        WHERE status = 'pending'
+        WHERE status IN ('pending', 'partial')
           AND due_date < CURDATE()`
     );
 
