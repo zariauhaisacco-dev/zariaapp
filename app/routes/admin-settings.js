@@ -178,17 +178,29 @@ router.post('/eligibility', async (req, res) => {
 // Branding (logo, name, tagline, mission, vision)
 // ---------------------------------------------------------------
 
+const HEX = Joi.string().pattern(/^#[0-9A-Fa-f]{6}$/);
+
 const brandingSchema = Joi.object({
   sacco_name:    Joi.string().min(2).max(120).required(),
   tagline:       Joi.string().max(200).allow('', null),
   mission_short: Joi.string().max(300).allow('', null),
   vision:        Joi.string().max(500).allow('', null),
+
+  color_primary:    HEX,
+  color_accent:     HEX,
+  color_background: HEX,
+
+  contact_phone:    Joi.string().max(40).allow('', null),
+  contact_whatsapp: Joi.string().max(40).allow('', null),
+  contact_email:    Joi.string().email().max(120).allow('', null),
+  contact_location: Joi.string().max(120).allow('', null),
+  contact_hours:    Joi.string().max(120).allow('', null),
 });
 
 router.get('/branding', async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN ('sacco_name','tagline','logo_url','mission_short','vision')"
+      "SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN ('sacco_name','tagline','logo_url','mission_short','vision','color_primary','color_accent','color_background','contact_phone','contact_whatsapp','contact_email','contact_location','contact_hours')"
     );
     const map = {};
     rows.forEach(r => { map[r.setting_key] = r.setting_value; });
@@ -198,6 +210,14 @@ router.get('/branding', async (req, res) => {
       logo_url:      map.logo_url      || '',
       mission_short: map.mission_short || '',
       vision:        map.vision        || '',
+      color_primary:    map.color_primary    || '',
+      color_accent:     map.color_accent     || '',
+      color_background: map.color_background || '',
+      contact_phone:    map.contact_phone    || '',
+      contact_whatsapp: map.contact_whatsapp || '',
+      contact_email:    map.contact_email    || '',
+      contact_location: map.contact_location || '',
+      contact_hours:    map.contact_hours    || '',
     });
   } catch (err) {
     console.error('[settings branding get]', err.message);
@@ -217,6 +237,18 @@ router.post('/branding', async (req, res) => {
     await savings.updateSetting('tagline', value.tagline || '', req.user.id, conn);
     await savings.updateSetting('mission_short', value.mission_short || '', req.user.id, conn);
     await savings.updateSetting('vision', value.vision || '', req.user.id, conn);
+
+    // Colors (only update if provided)
+    if (value.color_primary)    await savings.updateSetting('color_primary', value.color_primary, req.user.id, conn);
+    if (value.color_accent)     await savings.updateSetting('color_accent', value.color_accent, req.user.id, conn);
+    if (value.color_background) await savings.updateSetting('color_background', value.color_background, req.user.id, conn);
+
+    // Contact (always save, allow empty)
+    await savings.updateSetting('contact_phone', value.contact_phone || '', req.user.id, conn);
+    await savings.updateSetting('contact_whatsapp', value.contact_whatsapp || '', req.user.id, conn);
+    await savings.updateSetting('contact_email', value.contact_email || '', req.user.id, conn);
+    await savings.updateSetting('contact_location', value.contact_location || '', req.user.id, conn);
+    await savings.updateSetting('contact_hours', value.contact_hours || '', req.user.id, conn);
 
     await conn.commit();
 

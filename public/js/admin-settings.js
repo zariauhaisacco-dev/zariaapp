@@ -168,6 +168,24 @@
       $('brandingMission').value = b.mission_short || '';
       $('brandingVision').value = b.vision || '';
 
+      // Colors
+      var cp = b.color_primary || '#0B1F3A';
+      var ca = b.color_accent || '#F5B301';
+      var cb = b.color_background || '#F8F7F5';
+      $('colorPrimary').value = cp;
+      $('colorPrimaryHex').value = cp;
+      $('colorAccent').value = ca;
+      $('colorAccentHex').value = ca;
+      $('colorBackground').value = cb;
+      $('colorBackgroundHex').value = cb;
+
+      // Contact
+      $('contactPhone').value = b.contact_phone || '';
+      $('contactWhatsapp').value = b.contact_whatsapp || '';
+      $('contactEmail').value = b.contact_email || '';
+      $('contactLocation').value = b.contact_location || '';
+      $('contactHours').value = b.contact_hours || '';
+
       // Logo preview
       var img = $('logoImg');
       var placeholder = $('logoPlaceholder');
@@ -202,6 +220,14 @@
           tagline: $('brandingTagline').value.trim(),
           mission_short: $('brandingMission').value.trim(),
           vision: $('brandingVision').value.trim(),
+          color_primary: $('colorPrimaryHex').value.trim(),
+          color_accent: $('colorAccentHex').value.trim(),
+          color_background: $('colorBackgroundHex').value.trim(),
+          contact_phone: $('contactPhone').value.trim(),
+          contact_whatsapp: $('contactWhatsapp').value.trim(),
+          contact_email: $('contactEmail').value.trim(),
+          contact_location: $('contactLocation').value.trim(),
+          contact_hours: $('contactHours').value.trim(),
         };
         try {
           var res = await fetch('/api/admin/settings/branding', {
@@ -247,6 +273,20 @@
         }
       });
     }
+
+    // Sync color pickers with hex text inputs
+    function wireColorPair(pickerId, hexId) {
+      var p = $(pickerId), h = $(hexId);
+      if (!p || !h) return;
+      p.addEventListener('input', function () { h.value = p.value.toUpperCase(); });
+      h.addEventListener('input', function () {
+        var v = h.value.trim();
+        if (/^#[0-9A-Fa-f]{6}$/.test(v)) p.value = v;
+      });
+    }
+    wireColorPair('colorPrimary', 'colorPrimaryHex');
+    wireColorPair('colorAccent', 'colorAccentHex');
+    wireColorPair('colorBackground', 'colorBackgroundHex');
 
     if (resetBtn) {
       resetBtn.addEventListener('click', async function () {

@@ -157,6 +157,60 @@
               <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Vision statement</label>
               <textarea id="brandingVision" maxlength="500" rows="3" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:inherit"></textarea>
             </div>
+
+            <div style="border-top:1px solid var(--line-1);padding-top:14px;margin-top:4px">
+              <div style="font-size:12px;font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Colors</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+                <div>
+                  <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Primary</label>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <input type="color" id="colorPrimary" style="width:36px;height:36px;border:1px solid var(--line-1);border-radius:6px;cursor:pointer;padding:2px">
+                    <input type="text" id="colorPrimaryHex" maxlength="7" style="flex:1;padding:8px;font-size:13px;font-family:var(--font-mono);border:1px solid var(--line-1);border-radius:6px">
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Accent</label>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <input type="color" id="colorAccent" style="width:36px;height:36px;border:1px solid var(--line-1);border-radius:6px;cursor:pointer;padding:2px">
+                    <input type="text" id="colorAccentHex" maxlength="7" style="flex:1;padding:8px;font-size:13px;font-family:var(--font-mono);border:1px solid var(--line-1);border-radius:6px">
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Background</label>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <input type="color" id="colorBackground" style="width:36px;height:36px;border:1px solid var(--line-1);border-radius:6px;cursor:pointer;padding:2px">
+                    <input type="text" id="colorBackgroundHex" maxlength="7" style="flex:1;padding:8px;font-size:13px;font-family:var(--font-mono);border:1px solid var(--line-1);border-radius:6px">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--line-1);padding-top:14px;margin-top:4px">
+              <div style="font-size:12px;font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Contact information</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>
+                  <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Phone</label>
+                  <input type="text" id="contactPhone" maxlength="40" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+                </div>
+                <div>
+                  <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">WhatsApp (digits only)</label>
+                  <input type="text" id="contactWhatsapp" maxlength="40" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono)">
+                </div>
+                <div>
+                  <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Email</label>
+                  <input type="email" id="contactEmail" maxlength="120" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+                </div>
+                <div>
+                  <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Location</label>
+                  <input type="text" id="contactLocation" maxlength="120" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+                </div>
+                <div style="grid-column:1 / -1">
+                  <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Business hours</label>
+                  <input type="text" id="contactHours" maxlength="120" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+                </div>
+              </div>
+            </div>
+
             <div style="display:flex;gap:10px;align-items:center">
               <button type="button" class="btn-sm btn-dark" id="saveBranding">Save branding</button>
               <span id="brandingStatus" style="font-size:12.5px;color:var(--pos);display:none">Saved</span>

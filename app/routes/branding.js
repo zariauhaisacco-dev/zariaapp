@@ -23,13 +23,25 @@ const DEFAULTS = {
   logo_url: 'logo.png',
   mission_short: 'Inclusive savings, affordable credit, and member-centered support.',
   vision: '',
+  color_primary: '#0B1F3A',
+  color_accent: '#F5B301',
+  color_background: '#F8F7F5',
+  contact_phone: '0746 138 896',
+  contact_whatsapp: '254746138896',
+  contact_email: 'info@zariauhai.com',
+  contact_location: 'Nairobi, Kenya',
+  contact_hours: 'Mon–Sat, 8:00–18:00 EAT',
 };
 
 async function readBranding() {
   try {
     const [rows] = await db.query(
       `SELECT setting_key, setting_value FROM app_settings
-        WHERE setting_key IN ('sacco_name','tagline','logo_url','mission_short','vision')`
+        WHERE setting_key IN (
+          'sacco_name','tagline','logo_url','mission_short','vision',
+          'color_primary','color_accent','color_background',
+          'contact_phone','contact_whatsapp','contact_email','contact_location','contact_hours'
+        )`
     );
     const map = Object.assign({}, DEFAULTS);
     rows.forEach(function (r) {
@@ -51,6 +63,18 @@ router.get('/', async (req, res) => {
     mission_short: b.mission_short,
     vision: b.vision,
     logo_url: hasCustom ? '/api/branding/logo' : '/logo.png',
+    colors: {
+      primary: b.color_primary,
+      accent: b.color_accent,
+      background: b.color_background,
+    },
+    contact: {
+      phone: b.contact_phone,
+      whatsapp: b.contact_whatsapp,
+      email: b.contact_email,
+      location: b.contact_location,
+      hours: b.contact_hours,
+    },
   });
 });
 
