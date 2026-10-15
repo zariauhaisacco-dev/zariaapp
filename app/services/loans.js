@@ -89,6 +89,7 @@ async function createLoan({
   termMonths,
   purpose = null,
   createdBy,
+  externalConn = null,
 }) {
   principal = round2(principal);
   interestRate = Number(interestRate);
@@ -99,9 +100,11 @@ async function createLoan({
   if (!(interestRate >= 0 && interestRate < 1)) throw new Error('Interest rate must be in [0,1)');
   if (!(termMonths >= 1 && termMonths <= 24)) throw new Error('Term must be 1-24 months');
 
-  const conn = await db.getConnection();
+  const conn = externalConn || await db.getConnection();
+  const ownsConn = !externalConn;
+
   try {
-    await conn.beginTransaction();
+    if (ownsConn) await conn.beginTransaction();
 
     const [clientRows] = await conn.query(
       'SELECT id, status FROM clients WHERE id = ? FOR UPDATE',
@@ -151,13 +154,13 @@ async function createLoan({
       );
     }
 
-    await conn.commit();
+    if (ownsConn) await conn.commit();
     return { loanId, totalRepayable, installmentCount: installments.length };
   } catch (err) {
-    await conn.rollback();
+    if (ownsConn) await conn.rollback();
     throw err;
   } finally {
-    conn.release();
+    if (ownsConn) conn.release();
   }
 }
 

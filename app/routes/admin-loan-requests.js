@@ -120,15 +120,18 @@ router.post('/:id/approve', async (req, res) => {
     }
     const product = prods[0];
 
-    const principal = value.amount || Number(request.requested_amount);
+    const principal = value.amount != null
+      ? value.amount
+      : Number(request.requested_amount);
     const interestRate = value.interest_rate != null
       ? value.interest_rate
       : Number(product.interest_rate);
-    const termMonths = value.term_months || product.term_months;
+    const termMonths = value.term_months != null
+      ? value.term_months
+      : Number(request.requested_term_months);
 
-    await conn.commit();
-
-    // Create the actual loan (uses its own transaction internally)
+    // Create the loan inside our transaction (externalConn prevents
+    // createLoan from opening/committing its own).
     const created = await loans.createLoan({
       clientId: request.client_id,
       productId: request.product_id,
@@ -137,10 +140,11 @@ router.post('/:id/approve', async (req, res) => {
       termMonths,
       purpose: request.purpose,
       createdBy: req.user.id,
+      externalConn: conn,
     });
 
-    // Link the request to the loan and mark approved
-    await db.query(
+    // Link the request to the loan — same transaction
+    await conn.query(
       `UPDATE loan_requests
           SET status = 'approved',
               reviewed_by = ?,
@@ -150,6 +154,9 @@ router.post('/:id/approve', async (req, res) => {
       [req.user.id, created.loanId, requestId]
     );
 
+    // Single commit for the whole business operation
+    await conn.commit();
+
     await audit.log({
       actorUserId: req.user.id,
       actorRole: 'admin',
@@ -158,9 +165,14 @@ router.post('/:id/approve', async (req, res) => {
       entityId: requestId,
       newValues: {
         loan_id: created.loanId,
-        principal,
-        interest_rate: interestRate,
-        term_months: termMonths,
+        requested_amount: Number(request.requested_amount),
+        requested_term_months: Number(request.requested_term_months),
+        approved_amount: principal,
+        approved_interest_rate: interestRate,
+        approved_term_months: termMonths,
+        terms_changed:
+          principal !== Number(request.requested_amount) ||
+          termMonths !== Number(request.requested_term_months),
       },
       ip: req.ip,
       userAgent: req.get('user-agent'),
