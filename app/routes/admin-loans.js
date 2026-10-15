@@ -5,6 +5,7 @@ const loans = require('../services/loans');
 const audit = require('../services/audit');
 const email = require('../services/email');
 const push = require('../services/push');
+const shares = require('../services/shares');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -640,7 +641,7 @@ router.get('/stats', async (req, res) => {
   );
 
   // Outstanding vs collected, last 12 weeks (for chart)
-  const [weekly] = await db.query(
+  const [weeklyRaw] = await db.query(
     `SELECT
        DATE_FORMAT(created_at, '%Y-%u') AS week,
        SUM(CASE WHEN type = 'repayment' THEN amount ELSE 0 END) AS collected,
@@ -651,6 +652,35 @@ router.get('/stats', async (req, res) => {
       GROUP BY week
       ORDER BY week ASC`
   );
+
+  // Build a full 12-week series so the chart always renders 12 points,
+  // even if some weeks had no transactions. Missing weeks become zeros.
+  const weeklyMap = {};
+  weeklyRaw.forEach(function (r) { weeklyMap[r.week] = r; });
+
+  function isoWeekLabel(d) {
+    // Match MySQL's DATE_FORMAT(..., '%Y-%u') — %u uses Monday as the first
+    // day of the week and returns 00-53 (00 for days before the first Monday).
+    var target = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    var dayNum = target.getUTCDay() || 7;   // Sun=0 -> 7, Mon=1..Sat=6
+    target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+    var yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil(((target - yearStart) / 86400000 + 1) / 7);
+    return target.getUTCFullYear() + '-' + (weekNo < 10 ? '0' + weekNo : String(weekNo));
+  }
+
+  const weekly = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getTime() - i * 7 * 86400000);
+    const label = isoWeekLabel(d);
+    const match = weeklyMap[label];
+    weekly.push({
+      week: label,
+      collected: match ? match.collected : '0.00',
+      disbursed: match ? match.disbursed : '0.00',
+    });
+  }
 
   // --- Member funds: savings, shares, dividends ---
   const [savingsRow] = await db.query(
@@ -666,8 +696,12 @@ router.get('/stats', async (req, res) => {
       WHERE shares_held > 0`
   );
 
-  // Share par value is fixed at KES 100 (matches shares.js service constant)
-  const shareParValue = 100;
+  // Share par value comes from the config table (single source of truth).
+  // Fallback to 100 if the config row is missing.
+  const shareCfg = await shares.getConfig();
+  const shareParValue = shareCfg && shareCfg.par_value
+    ? Number(shareCfg.par_value)
+    : 100;
 
   const [dividendsRow] = await db.query(
     `SELECT
