@@ -8,3 +8,7 @@ tmp/restart.txt
 *.bak-*
 *.broken-*
 _backups/
+
+# Uploaded files — user data, never in git
+data/*
+!data/.gitkeep
