@@ -3,6 +3,7 @@ const Joi = require('joi');
 const db = require('../db');
 const audit = require('../services/audit');
 const email = require('../services/email');
+const savings = require('../services/savings');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -120,13 +121,27 @@ router.post('/:id/approve', async (req, res) => {
 
     await conn.commit();
 
+    // Auto-open savings account (best-effort).
+    // Wrapped in try/catch so a savings failure doesn't roll back the
+    // approval — the account can be created later on first save attempt.
+    let savingsAccountId = null;
+    try {
+      savingsAccountId = await savings.createAccountForClient(clientResult.insertId);
+    } catch (err) {
+      console.error('[approve] Auto-open savings account failed:', err.message);
+    }
+
     await audit.log({
       actorUserId: req.user.id,
       actorRole: 'admin',
       action: 'registration.approved',
       entityType: 'user',
       entityId: userId,
-      newValues: { email: pending.email, client_id: clientResult.insertId },
+      newValues: {
+        email: pending.email,
+        client_id: clientResult.insertId,
+        savings_account_id: savingsAccountId,
+      },
       ip, userAgent: ua,
     });
 
@@ -140,6 +155,7 @@ router.post('/:id/approve', async (req, res) => {
       ok: true,
       userId,
       clientId: clientResult.insertId,
+      savingsAccountId,
     });
   } catch (err) {
     try { await conn.rollback(); } catch (_) {}
