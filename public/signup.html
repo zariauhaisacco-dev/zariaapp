@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0B1F3A">
-  <title>Zaria · Apply for a loan</title>
+  <title>Zaria · Join Zaria Uhai SACCO</title>
   <link rel="stylesheet" href="/css/app.css">
   <link rel="stylesheet" href="/css/dashboard.css">
   <link rel="icon" href="/favicon/32" sizes="32x32">
@@ -14,9 +14,10 @@
   <style>
     .signup-shell { max-width: 640px; margin: 0 auto; padding: 32px 20px 60px; }
     .signup-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
-    .signup-brand .chip { width: 32px; height: 32px; border-radius: 9px; background: var(--amber-500);
-                          display: grid; place-items: center; font-weight: 800; color: var(--navy-900); }
-    .signup-brand .word { font-weight: 700; font-size: 16px; }
+    .signup-brand .brand-chip { width: 48px; height: 48px; border-radius: 12px; background: #F8F7F5;
+                                  display: grid; place-items: center; overflow: hidden; flex-shrink: 0; }
+    .signup-brand .brand-chip img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .signup-brand .brand-word { font-weight: 700; font-size: 16px; color: var(--ink-900); }
     .signup-head { margin-bottom: 24px; }
     .signup-head h1 { font-size: 26px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
     .signup-head p { margin: 0; color: var(--ink-500); font-size: 14px; }
@@ -36,13 +37,16 @@
 <body>
   <main class="signup-shell">
     <div class="signup-brand">
-      <span class="chip">Z</span><span class="word">Zaria</span>
+      <span class="brand-chip" id="brandChip">
+        <img src="/api/branding/logo" alt="" id="brandLogo">
+      </span>
+      <span class="brand-word" id="brandName">Zaria Uhai SACCO</span>
     </div>
 
     <div id="form-wrap">
       <div class="signup-head">
-        <h1>Apply for a loan</h1>
-        <p>Tell us a bit about you. Our team reviews every application personally.</p>
+        <h1>Become a member</h1>
+        <p>Join a community that saves together and grows together. Our team reviews every application personally.</p>
       </div>
 
       <form id="signupForm" class="signup-form" novalidate>
@@ -92,11 +96,6 @@
         </div>
 
         <div class="field">
-          <label for="purpose">What do you need the loan for? <span style="color:var(--ink-400);font-weight:400">(optional)</span></label>
-          <input type="text" id="purpose" name="purpose" maxlength="500" placeholder="e.g. restock my shop, school fees, transport">
-        </div>
-
-        <div class="field">
           <label for="heard_about">How did you hear about Zaria? <span style="color:var(--ink-400);font-weight:400">(optional)</span></label>
           <select id="heard_about" name="heard_about" class="styled">
             <option value="">Select…</option>
@@ -112,12 +111,12 @@
         <div class="form-error" id="formError" role="alert" hidden></div>
 
         <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
-          <span class="btn-label">Submit application</span>
+          <span class="btn-label">Create my account</span>
           <span class="btn-spinner" hidden></span>
         </button>
 
         <p class="legal" style="text-align:left">
-          By applying you agree to our <a href="/terms" class="link">Terms</a> and
+          By joining you agree to our <a href="/terms" class="link">Terms</a> and
           <a href="/privacy" class="link">Privacy Policy</a>.
           Your details are protected under Kenya's Data Protection Act.
         </p>
@@ -130,8 +129,8 @@
 
     <div id="success-wrap" hidden>
       <div class="success-box">
-        <h2>Application received</h2>
-        <p>Thank you. We've received your application and our team is reviewing it.
+        <h2>Welcome to Zaria</h2>
+        <p>Thank you for joining. We've received your application and our team is reviewing it.
            You'll hear from us by email within <strong>1–2 business days</strong>.</p>
         <p style="margin:0;color:var(--ink-500);font-size:13px">
           Questions? Call 0746 138 896 or email info@zariauhai.com.

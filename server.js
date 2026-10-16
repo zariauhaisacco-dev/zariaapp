@@ -256,6 +256,11 @@ app.get('/client/statements', (req, res) => {
 app.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'signup.html'));
 });
+
+// Alias: /join → same signup page (share this URL publicly)
+app.get('/join', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
 app.get('/forgot-password', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'forgot-password.html'));
 });

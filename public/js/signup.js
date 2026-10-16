@@ -8,6 +8,28 @@
   var submitLabel = submitBtn.querySelector('.btn-label');
   var submitSpinner = submitBtn.querySelector('.btn-spinner');
 
+  // ---------------------------------------------------------------
+  // Load branding (logo + SACCO name from admin settings)
+  // ---------------------------------------------------------------
+  (function () {
+    fetch('/api/branding', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (b) {
+        if (!b) return;
+        var nameEl = document.getElementById('brandName');
+        if (nameEl && b.sacco_name) {
+          nameEl.textContent = b.sacco_name;
+          document.title = b.sacco_name + ' · Become a member';
+        }
+        var logoEl = document.getElementById('brandLogo');
+        if (logoEl && b.logo_url) {
+          logoEl.src = b.logo_url + '?v=' + Date.now();
+          logoEl.alt = b.sacco_name || 'Logo';
+        }
+      })
+      .catch(function () {});
+  })();
+
   function showError(msg) {
     errorBox.textContent = msg;
     errorBox.hidden = false;
@@ -47,7 +69,6 @@
       national_id: (fd.get('national_id') || '').toString().trim(),
       password: (fd.get('password') || '').toString(),
       confirm_password: (fd.get('confirm_password') || '').toString(),
-      purpose: (fd.get('purpose') || '').toString().trim(),
       heard_about: (fd.get('heard_about') || '').toString(),
       website: (fd.get('website') || '').toString()
     };
