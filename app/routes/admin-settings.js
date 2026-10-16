@@ -5,6 +5,7 @@ const audit = require('../services/audit');
 const savings = require('../services/savings');
 const uploads = require('../services/uploads');
 const daraja = require('../services/daraja');
+const darajaB2c = require('../services/daraja-b2c');
 const cryptoService = require('../services/settings-crypto');
 const { authenticate, requireRole } = require('../middleware/auth');
 
@@ -122,7 +123,6 @@ router.get('/system', async (req, res) => {
     res.status(500).json({ error: 'Could not load system info' });
   }
 });
-
 
 // GET /api/admin/settings/eligibility
 router.get('/eligibility', async (req, res) => {
@@ -349,7 +349,6 @@ router.delete('/logo', async (req, res) => {
   }
 });
 
-
 // ---------------------------------------------------------------
 // Daraja (M-Pesa) settings
 // ---------------------------------------------------------------
@@ -397,6 +396,7 @@ router.get('/daraja', async (req, res) => {
         shortcode: map.daraja_b2c_shortcode || '',
         initiator_name: map.daraja_b2c_initiator_name || '',
         has_initiator_pass: !!map.daraja_b2c_initiator_pass_enc,
+        has_security_credential: !!map.daraja_b2c_security_credential_enc,
       },
       encryption_configured: cryptoService.isConfigured(),
       sources: sources,
@@ -417,6 +417,7 @@ const darajaSchema = Joi.object({
   b2c_shortcode: Joi.string().max(20).allow('', null),
   b2c_initiator_name: Joi.string().max(60).allow('', null),
   b2c_initiator_pass: Joi.string().max(200).allow('', null),// blank = keep existing
+  b2c_security_credential: Joi.string().max(2000).allow('', null),// blank = keep existing
 });
 
 router.post('/daraja', async (req, res) => {
@@ -455,11 +456,16 @@ router.post('/daraja', async (req, res) => {
       await savings.updateSetting('daraja_b2c_initiator_pass_enc', cryptoService.encrypt(value.b2c_initiator_pass), req.user.id, conn);
       changedFields.push('b2c_initiator_pass');
     }
+    if (value.b2c_security_credential) {
+      await savings.updateSetting('daraja_b2c_security_credential_enc', cryptoService.encrypt(value.b2c_security_credential), req.user.id, conn);
+      changedFields.push('b2c_security_credential');
+    }
 
     await conn.commit();
 
-    // Force the Daraja service to reload its cached config
+    // Force the Daraja services to reload their cached config
     daraja.reloadConfig();
+    darajaB2c.reloadB2cConfig();
 
     await audit.log({
       actorUserId: req.user.id,
@@ -507,5 +513,54 @@ router.post('/daraja/test', async (req, res) => {
   }
 });
 
+router.post('/daraja/b2c-test', async (req, res) => {
+  try {
+    if (!(await darajaB2c.isConfigured())) {
+      const cfg = await darajaB2c.loadB2cConfig();
+      const missing = [];
+      if (!cfg.shortcode) missing.push('B2C shortcode');
+      if (!cfg.initiatorName) missing.push('Initiator name');
+      if (!cfg.securityCredential) missing.push('SecurityCredential');
+      return res.status(400).json({
+        ok: false,
+        error: 'B2C is not fully configured',
+        missing: missing,
+      });
+    }
+
+    const envCfg = await daraja.loadConfig();
+    const result = await darajaB2c.sendB2C({
+      phone: '254708374149',
+      amount: 1,
+      remarks: 'B2C test from Zaria admin',
+      occasion: 'Test',
+      resultUrl: envCfg.callbackUrl.replace(/\/callback$/, '/b2c-callback'),
+      timeoutUrl: envCfg.callbackUrl.replace(/\/callback$/, '/b2c-timeout'),
+    });
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'settings.daraja_b2c_test_sent',
+      entityType: 'app_settings',
+      newValues: {
+        conversation_id: result.conversationId,
+        originator_conversation_id: result.originatorConversationId,
+      },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      ok: true,
+      message: 'B2C test sent to 254708374149. Check the sandbox simulator for the result.',
+      conversation_id: result.conversationId,
+      originator_conversation_id: result.originatorConversationId,
+    });
+  } catch (err) {
+    console.error('[settings daraja b2c-test]', err.message);
+    res.status(400).json({ ok: false, error: err.message });
+  }
+});
 
 module.exports = router;
