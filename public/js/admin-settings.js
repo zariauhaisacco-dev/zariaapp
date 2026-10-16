@@ -306,15 +306,177 @@
     }
   }
 
+  // ---------------------------------------------------------------
+  // M-Pesa (Daraja) settings
+  // ---------------------------------------------------------------
+  async function loadDaraja() {
+    try {
+      var res = await fetch('/api/admin/settings/daraja', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      var d = await res.json();
+
+      $('darajaEnv').value = d.env || 'sandbox';
+      $('darajaShortcode').value = d.shortcode || '';
+      $('darajaConsumerKey').value = d.consumer_key || '';
+      $('darajaCallbackUrl').value = d.callback_url || '';
+
+      var secStatus = $('darajaSecretStatus');
+      var secMasked = $('darajaSecretMasked');
+      if (d.has_consumer_secret) {
+        secStatus.textContent = '✅ Set';
+        secStatus.style.color = 'var(--pos)';
+        secMasked.value = '•••••••••••••••• (encrypted)';
+      } else {
+        secStatus.textContent = '⚠️ Not set';
+        secStatus.style.color = 'var(--neg)';
+        secMasked.value = '(no secret configured)';
+      }
+
+      var pkStatus = $('darajaPasskeyStatus');
+      var pkMasked = $('darajaPasskeyMasked');
+      if (d.has_passkey) {
+        pkStatus.textContent = '✅ Set';
+        pkStatus.style.color = 'var(--pos)';
+        pkMasked.value = '•••••••••••••••• (encrypted)';
+      } else {
+        pkStatus.textContent = '⚠️ Not set';
+        pkStatus.style.color = 'var(--neg)';
+        pkMasked.value = '(no passkey configured)';
+      }
+
+      var b2c = d.b2c || {};
+      $('darajaB2cShortcode').value = b2c.shortcode || '';
+      $('darajaB2cInitiatorName').value = b2c.initiator_name || '';
+      var b2cStatus = $('darajaB2cStatus');
+      var b2cMasked = $('darajaB2cMasked');
+      if (b2c.has_initiator_pass) {
+        b2cStatus.textContent = '✅ Set';
+        b2cStatus.style.color = 'var(--pos)';
+        b2cMasked.value = '•••••••••••••••• (encrypted)';
+      } else {
+        b2cStatus.textContent = '⚠️ Not set';
+        b2cStatus.style.color = 'var(--ink-500)';
+        b2cMasked.value = '(no initiator password configured)';
+      }
+
+      var warn = $('darajaWarn');
+      if (!d.encryption_configured) {
+        warn.textContent = 'Encryption key is not configured on the server. Saving credentials is disabled.';
+        warn.hidden = false;
+      } else {
+        warn.hidden = true;
+      }
+    } catch (e) {
+      console.error('[daraja load]', e.message);
+    }
+  }
+
+  function showDarajaStatus(msg, kind) {
+    var el = $('darajaStatus');
+    el.textContent = msg;
+    el.style.display = 'inline';
+    el.style.color = kind === 'error' ? 'var(--neg)' : 'var(--pos)';
+    setTimeout(function () { el.style.display = 'none'; }, 4000);
+  }
+
+  function wireDaraja() {
+    function wireChange(btnId, inputId) {
+      var btn = $(btnId);
+      var input = $(inputId);
+      if (!btn || !input) return;
+      btn.addEventListener('click', function () {
+        input.style.display = input.style.display === 'none' ? 'block' : 'none';
+        if (input.style.display === 'block') input.focus();
+      });
+    }
+    wireChange('darajaSecretChangeBtn', 'darajaSecretNew');
+    wireChange('darajaPasskeyChangeBtn', 'darajaPasskeyNew');
+    wireChange('darajaB2cChangeBtn', 'darajaB2cNew');
+
+    var saveBtn = $('darajaSaveBtn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async function () {
+        saveBtn.disabled = true;
+        var body = {
+          env: $('darajaEnv').value,
+          shortcode: $('darajaShortcode').value.trim(),
+          consumer_key: $('darajaConsumerKey').value.trim(),
+          consumer_secret: $('darajaSecretNew').value,
+          passkey: $('darajaPasskeyNew').value,
+          callback_url: $('darajaCallbackUrl').value.trim(),
+          b2c_shortcode: $('darajaB2cShortcode').value.trim(),
+          b2c_initiator_name: $('darajaB2cInitiatorName').value.trim(),
+          b2c_initiator_pass: $('darajaB2cNew').value,
+        };
+        try {
+          var res = await fetch('/api/admin/settings/daraja', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          var data = await res.json();
+          if (!res.ok) {
+            showDarajaStatus(data.error || 'Save failed', 'error');
+          } else {
+            showDarajaStatus('Saved', 'ok');
+            $('darajaSecretNew').value = '';
+            $('darajaPasskeyNew').value = '';
+            $('darajaB2cNew').value = '';
+            $('darajaSecretNew').style.display = 'none';
+            $('darajaPasskeyNew').style.display = 'none';
+            $('darajaB2cNew').style.display = 'none';
+            await loadDaraja();
+          }
+        } catch (e) {
+          showDarajaStatus('Network error', 'error');
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+    }
+
+    var testBtn = $('darajaTestBtn');
+    if (testBtn) {
+      testBtn.addEventListener('click', async function () {
+        testBtn.disabled = true;
+        testBtn.textContent = 'Testing…';
+        try {
+          var res = await fetch('/api/admin/settings/daraja/test', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+          });
+          var data = await res.json();
+          if (data.ok) {
+            showDarajaStatus('✅ Connection OK', 'ok');
+          } else {
+            showDarajaStatus('❌ ' + (data.error || 'Failed'), 'error');
+          }
+        } catch (e) {
+          showDarajaStatus('Network error', 'error');
+        } finally {
+          testBtn.disabled = false;
+          testBtn.textContent = '🔌 Test connection';
+        }
+      });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     loadBranding();
     wireBranding();
     loadEligibility();
+    loadDaraja();
+    wireDaraja();
   });
 
   // Since DOMContentLoaded may have already fired, also try immediately
   setTimeout(loadEligibility, 300);
   setTimeout(loadBranding, 300);
+  setTimeout(loadDaraja, 300);
+  setTimeout(wireDaraja, 300);
 
   if ($('saveEligibility')) {
     $('saveEligibility').addEventListener('click', async function () {

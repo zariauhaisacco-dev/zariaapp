@@ -220,7 +220,107 @@
       </div>
     </section>
 
-        <!-- Loan eligibility rules -->
+        <section class="card" id="mpesaCard" style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Payments (M-Pesa)</h2>
+          <p class="card-sub">Configure Daraja credentials. Admin-only. Secrets are encrypted at rest.</p>
+        </div>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Environment</label>
+            <select id="darajaEnv" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+              <option value="sandbox">Sandbox (testing)</option>
+              <option value="production">Production (live)</option>
+            </select>
+            <p class="muted small" style="margin:4px 0 0;font-size:11px">Switch to Production only when you have Safaricom live credentials.</p>
+          </div>
+          <div>
+            <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Shortcode (Paybill / Till)</label>
+            <input type="text" id="darajaShortcode" maxlength="20" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono)">
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Consumer Key</label>
+          <input type="text" id="darajaConsumerKey" maxlength="120" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono)">
+          <p class="muted small" style="margin:4px 0 0;font-size:11px">Public — displayed in full.</p>
+        </div>
+
+        <div>
+          <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">
+            Consumer Secret
+            <span id="darajaSecretStatus" style="font-size:11px;font-weight:500;color:var(--ink-500);margin-left:8px">—</span>
+          </label>
+          <div id="darajaSecretRow" style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="darajaSecretMasked" readonly value="" style="flex:1;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;background:var(--surface-2);color:var(--ink-500);font-family:var(--font-mono)">
+            <button type="button" class="btn-sm btn-outline" id="darajaSecretChangeBtn" style="white-space:nowrap">Change</button>
+          </div>
+          <input type="password" id="darajaSecretNew" maxlength="200" placeholder="Paste new consumer secret" style="display:none;width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono);margin-top:6px">
+          <p class="muted small" style="margin:4px 0 0;font-size:11px">Leave blank on save to keep the current value.</p>
+        </div>
+
+        <div>
+          <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">
+            Passkey (STK)
+            <span id="darajaPasskeyStatus" style="font-size:11px;font-weight:500;color:var(--ink-500);margin-left:8px">—</span>
+          </label>
+          <div id="darajaPasskeyRow" style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="darajaPasskeyMasked" readonly value="" style="flex:1;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;background:var(--surface-2);color:var(--ink-500);font-family:var(--font-mono)">
+            <button type="button" class="btn-sm btn-outline" id="darajaPasskeyChangeBtn" style="white-space:nowrap">Change</button>
+          </div>
+          <input type="password" id="darajaPasskeyNew" maxlength="200" placeholder="Paste new passkey" style="display:none;width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono);margin-top:6px">
+          <p class="muted small" style="margin:4px 0 0;font-size:11px">Leave blank on save to keep the current value.</p>
+        </div>
+
+        <div>
+          <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Callback URL</label>
+          <input type="text" id="darajaCallbackUrl" maxlength="300" style="width:100%;padding:8px 12px;font-size:13px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono)">
+          <p class="muted small" style="margin:4px 0 0;font-size:11px">Safaricom will POST payment results to this URL. Must be HTTPS in production.</p>
+        </div>
+
+        <div style="border-top:1px solid var(--line-1);padding-top:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">B2C (loan disbursements — production only)</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">B2C Shortcode</label>
+              <input type="text" id="darajaB2cShortcode" maxlength="20" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono)">
+            </div>
+            <div>
+              <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">Initiator Name</label>
+              <input type="text" id="darajaB2cInitiatorName" maxlength="60" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">
+              Initiator Password
+              <span id="darajaB2cStatus" style="font-size:11px;font-weight:500;color:var(--ink-500);margin-left:8px">—</span>
+            </label>
+            <div id="darajaB2cRow" style="display:flex;gap:8px;align-items:center">
+              <input type="text" id="darajaB2cMasked" readonly value="" style="flex:1;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;background:var(--surface-2);color:var(--ink-500);font-family:var(--font-mono)">
+              <button type="button" class="btn-sm btn-outline" id="darajaB2cChangeBtn" style="white-space:nowrap">Change</button>
+            </div>
+            <input type="password" id="darajaB2cNew" maxlength="200" placeholder="Paste new initiator password" style="display:none;width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono);margin-top:6px">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:6px">
+          <button type="button" class="btn-sm btn-outline" id="darajaTestBtn">🔌 Test connection</button>
+          <button type="button" class="btn-sm btn-dark" id="darajaSaveBtn">Save M-Pesa settings</button>
+          <span id="darajaStatus" style="font-size:12.5px;display:none"></span>
+        </div>
+
+        <div id="darajaWarn" class="alert alert-error" hidden style="margin-top:6px"></div>
+
+      </div>
+    </section>
+
+    <!-- Loan eligibility rules -->
     <section class="card" id="eligibilityCard" style="margin-bottom:20px">
       <div class="card-head">
         <div>
