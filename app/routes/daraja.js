@@ -1,12 +1,5 @@
 /*
  * Zaria — Daraja routes
- *
- * POST /api/daraja/stk-push   — initiate M-Pesa STK Push (client auth)
- * POST /api/daraja/callback   — receive STK Push result (public, verified)
- *
- * Callback verification: we do NOT trust the callback body alone. Instead
- * we extract the CheckoutRequestID, call stkQuery() to confirm with Daraja,
- * and only then record the payment.
  */
 
 const express = require('express');
@@ -19,19 +12,8 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-    out.token_call_status = r.status;
-    out.token_call_content_type = r.headers.get('content-type');
-    const body = await r.text();
-    out.token_call_body_head = body.slice(0, 200);
-  } catch (err) {
-    out.token_call_error = err.message;
-  }
-
-  res.json(out);
-});
-
 // ---------------------------------------------------------------
-// POST /stk-push — client initiates payment for a loan
+// POST /stk-push
 // ---------------------------------------------------------------
 const stkSchema = Joi.object({
   loan_id: Joi.number().integer().positive().required(),
@@ -48,7 +30,6 @@ router.post('/stk-push', authenticate, async (req, res) => {
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    // Verify the client owns this loan
     const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
     if (!cl.length) return res.status(404).json({ error: 'Client not found' });
 
@@ -71,12 +52,8 @@ router.post('/stk-push', authenticate, async (req, res) => {
       description: 'Loan repayment',
     });
 
-    // Record the request as pending
     await db.query(
-      `INSERT INTO daraja_requests
-        (client_id, loan_id, checkout_request_id, merchant_request_id,
-         phone, amount, direction, status)
-       VALUES (?, ?, ?, ?, ?, ?, 'stk_push', 'pending')`,
+      "INSERT INTO daraja_requests (client_id, loan_id, checkout_request_id, merchant_request_id, phone, amount, direction, status) VALUES (?, ?, ?, ?, ?, ?, 'stk_push', 'pending')",
       [cl[0].id, value.loan_id, result.checkoutRequestId, result.merchantRequestId,
        value.phone, value.amount]
     );
@@ -104,11 +81,27 @@ router.post('/stk-push', authenticate, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
-// POST /callback — receive STK Push result from Daraja
-// PUBLIC — no session. Verified via stkQuery.
+// GET /status/:checkoutId
+// ---------------------------------------------------------------
+router.get('/status/:checkoutId', authenticate, async (req, res) => {
+  try {
+    const checkoutId = String(req.params.checkoutId);
+    const [rows] = await db.query(
+      'SELECT status, result_code, result_desc, mpesa_receipt, amount FROM daraja_requests WHERE checkout_request_id = ? LIMIT 1',
+      [checkoutId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Request not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[daraja status]', err.message);
+    res.status(500).json({ error: 'Could not load status' });
+  }
+});
+
+// ---------------------------------------------------------------
+// POST /callback
 // ---------------------------------------------------------------
 router.post('/callback', async (req, res) => {
-  // Respond immediately (Daraja expects a fast 200)
   res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
 
   try {
@@ -119,7 +112,6 @@ router.post('/callback', async (req, res) => {
     const resultCode = body.ResultCode;
     const resultDesc = body.ResultDesc;
 
-    // Look up the pending request
     const [rows] = await db.query(
       'SELECT id, client_id, loan_id, phone, amount FROM daraja_requests WHERE checkout_request_id = ? LIMIT 1',
       [checkoutRequestId]
@@ -130,13 +122,11 @@ router.post('/callback', async (req, res) => {
     }
     const reqRow = rows[0];
 
-    // Store the raw callback for audit
     await db.query(
       'UPDATE daraja_requests SET raw_callback = ? WHERE id = ?',
       [JSON.stringify(req.body), reqRow.id]
     );
 
-    // If ResultCode is not 0, we can trust the failure (no money moved)
     if (Number(resultCode) !== 0) {
       const cls = daraja.classifyResultCode(resultCode);
       await db.query(
@@ -146,14 +136,12 @@ router.post('/callback', async (req, res) => {
       return;
     }
 
-    // Success case — VERIFY with Daraja before trusting the callback
     let verified = false;
     let mpesaReceipt = null;
     try {
       const q = await daraja.stkQuery({ checkoutRequestId });
       if (q.resultCode === 0) {
         verified = true;
-        // Extract receipt from CallbackMetadata if present
         const items = body.CallbackMetadata && body.CallbackMetadata.Item;
         if (Array.isArray(items)) {
           const rec = items.find(i => i.Name === 'MpesaReceiptNumber');
@@ -172,8 +160,7 @@ router.post('/callback', async (req, res) => {
       return;
     }
 
-    // Record the payment against the loan
-    const paymentResult = await loans.recordPayment({
+    await loans.recordPayment({
       loanId: reqRow.loan_id,
       amount: Number(reqRow.amount),
       mpesaReceipt: mpesaReceipt,
@@ -183,9 +170,7 @@ router.post('/callback', async (req, res) => {
     });
 
     await db.query(
-      `UPDATE daraja_requests
-          SET status = 'success', result_code = 0, result_desc = ?, mpesa_receipt = ?
-        WHERE id = ?`,
+      "UPDATE daraja_requests SET status = 'success', result_code = 0, result_desc = ?, mpesa_receipt = ? WHERE id = ?",
       [resultDesc, mpesaReceipt, reqRow.id]
     );
 
