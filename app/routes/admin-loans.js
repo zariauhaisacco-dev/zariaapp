@@ -6,6 +6,8 @@ const audit = require('../services/audit');
 const email = require('../services/email');
 const push = require('../services/push');
 const shares = require('../services/shares');
+const darajaB2c = require('../services/daraja-b2c');
+const daraja = require('../services/daraja');
 const uploads = require('../services/uploads');
 const { authenticate, requireRole } = require('../middleware/auth');
 
@@ -769,6 +771,102 @@ router.get('/stats', async (req, res) => {
     dividends_count: Number(dividendsRow[0].count),
     dividends_paid: Number(dividendsPaidRow[0].paid),
   });
+});
+
+// ===============================================================
+// B2C DISBURSEMENT
+// POST /api/admin/loans/:id/disburse-b2c
+// Sends the loan principal to the client's phone via M-Pesa B2C.
+// ===============================================================
+
+const disburseB2cSchema = Joi.object({
+  phone: Joi.string().pattern(/^2547\d{8}$/).required(),
+  amount: Joi.number().integer().positive().max(500000).optional(),
+  remarks: Joi.string().max(100).allow('', null),
+});
+
+router.post('/loans/:id/disburse-b2c', async (req, res) => {
+  const loanId = Number(req.params.id);
+  const { error, value } = disburseB2cSchema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  if (!(await darajaB2c.isConfigured())) {
+    return res.status(503).json({
+      error: 'B2C is not configured. Set credentials in Settings → Payments.',
+    });
+  }
+
+  try {
+    const [loans] = await db.query(
+      'SELECT id, client_id, principal, status FROM loans WHERE id = ? LIMIT 1',
+      [loanId]
+    );
+    if (!loans.length) return res.status(404).json({ error: 'Loan not found' });
+    const loan = loans[0];
+    if (loan.status !== 'approved') {
+      return res.status(400).json({ error: 'Loan must be approved before disbursement' });
+    }
+
+    const amount = value.amount || Number(loan.principal);
+    if (amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+
+    const envCfg = await daraja.loadConfig();
+    const callbackBase = envCfg.callbackUrl.replace(/\/callback$/, '');
+
+    // Generate a unique originator id for tracking
+    const crypto = require('crypto');
+    const originatorId = 'B2C-LOAN' + loanId + '_' + crypto.randomBytes(6).toString('hex');
+
+    const result = await darajaB2c.sendB2C({
+      phone: value.phone,
+      amount: amount,
+      remarks: value.remarks || ('Loan #' + loanId + ' disbursement'),
+      occasion: 'LoanDisbursement',
+      resultUrl: callbackBase + '/b2c-callback',
+      timeoutUrl: callbackBase + '/b2c-timeout',
+    });
+
+    // Save a daraja_requests row keyed by the originator id so the callback
+    // can find it. We also store the conversation id returned.
+    await db.query(
+      `INSERT INTO daraja_requests
+        (client_id, loan_id, phone, amount, direction, status, b2c_originator_conversation_id, b2c_conversation_id, b2c_command_id)
+       VALUES (?, ?, ?, ?, 'b2c', 'pending', ?, ?, 'BusinessPayment')`,
+      [
+        loan.client_id,
+        loanId,
+        value.phone,
+        amount,
+        result.originatorConversationId || originatorId,
+        result.conversationId,
+      ]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'loan.disbursement_b2c_initiated',
+      entityType: 'loan',
+      entityId: loanId,
+      newValues: {
+        amount: amount,
+        phone: value.phone,
+        conversation_id: result.conversationId,
+      },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      ok: true,
+      message: 'B2C disbursement request accepted. Funds will arrive shortly.',
+      conversation_id: result.conversationId,
+      originator_conversation_id: result.originatorConversationId,
+    });
+  } catch (err) {
+    console.error('[disburse-b2c]', err.message);
+    res.status(400).json({ error: err.message });
+  }
 });
 
 module.exports = router;

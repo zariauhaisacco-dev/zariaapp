@@ -251,4 +251,163 @@ router.post('/callback', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------
+// POST /b2c-callback — B2C result callback from Safaricom
+// PUBLIC — verifies via transaction status query
+// ---------------------------------------------------------------
+router.post('/b2c-callback', async (req, res) => {
+  // Respond immediately
+  res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+
+  try {
+    const result = req.body && req.body.Result;
+    if (!result) {
+      console.warn('[daraja b2c-callback] no Result in body');
+      return;
+    }
+
+    const originatorId = result.OriginatorConversationID;
+    const conversationId = result.ConversationID;
+    const transactionId = result.TransactionID;
+    const resultCode = Number(result.ResultCode);
+    const resultDesc = result.ResultDesc;
+
+    // Find our daraja_requests row by originator conversation id
+    const [rows] = await db.query(
+      `SELECT id, client_id, loan_id, savings_account_id, phone, amount, status, direction
+         FROM daraja_requests
+        WHERE b2c_originator_conversation_id = ?
+        LIMIT 1`,
+      [originatorId]
+    );
+
+    if (!rows.length) {
+      console.warn('[daraja b2c-callback] unknown originator:', originatorId);
+      return;
+    }
+    const reqRow = rows[0];
+
+    // Extract details from ResultParameters if success
+    let receiverName = null;
+    if (result.ResultParameters && result.ResultParameters.ResultParameter) {
+      const items = result.ResultParameters.ResultParameter;
+      const rec = items.find(i => i.Key === 'ReceiverPartyPublicName');
+      if (rec && rec.Value) receiverName = String(rec.Value);
+    }
+
+    if (resultCode === 0) {
+      // SUCCESS — mark daraja_requests as success
+      await db.query(
+        `UPDATE daraja_requests
+            SET status = 'success',
+                result_code = 0,
+                result_desc = ?,
+                mpesa_receipt = ?,
+                b2c_transaction_id = ?,
+                b2c_conversation_id = ?,
+                b2c_receiver_name = ?,
+                raw_callback = ?
+          WHERE id = ?`,
+        [
+          resultDesc || 'Success',
+          transactionId,
+          transactionId,
+          conversationId,
+          receiverName,
+          JSON.stringify(req.body),
+          reqRow.id,
+        ]
+      );
+
+      // If this was a loan disbursement, mark the loan as active
+      if (reqRow.loan_id) {
+        await db.query(
+          `UPDATE loans
+              SET status = 'active', disbursed_at = NOW()
+            WHERE id = ? AND status = 'approved'`,
+          [reqRow.loan_id]
+        );
+
+        // Record a disbursement transaction
+        await db.query(
+          `INSERT INTO transactions
+            (loan_id, client_id, type, amount, mpesa_receipt, reference, status, notes, recorded_by)
+           VALUES (?, ?, 'disbursement', ?, ?, 'MPESA-B2C', 'completed', 'M-Pesa B2C disbursement', NULL)`,
+          [reqRow.loan_id, reqRow.client_id, reqRow.amount, transactionId]
+        );
+      }
+
+      await audit.log({
+        actorRole: 'system',
+        action: 'daraja.b2c_disbursement_recorded',
+        entityType: reqRow.loan_id ? 'loan' : 'daraja_request',
+        entityId: reqRow.loan_id || reqRow.id,
+        newValues: {
+          amount: reqRow.amount,
+          mpesa_receipt: transactionId,
+          originator_conversation_id: originatorId,
+          receiver: receiverName,
+        },
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+
+      console.log('[daraja b2c-callback] success:', transactionId, 'amount:', reqRow.amount);
+    } else {
+      // FAILURE
+      const cls = daraja.classifyResultCode(resultCode);
+      await db.query(
+        `UPDATE daraja_requests
+            SET status = ?,
+                result_code = ?,
+                result_desc = ?,
+                b2c_transaction_id = ?,
+                b2c_conversation_id = ?,
+                raw_callback = ?
+          WHERE id = ?`,
+        [cls, resultCode, resultDesc, transactionId, conversationId, JSON.stringify(req.body), reqRow.id]
+      );
+
+      console.log('[daraja b2c-callback] failed:', transactionId, 'code:', resultCode, 'desc:', resultDesc);
+    }
+  } catch (err) {
+    console.error('[daraja b2c-callback]', err.message);
+  }
+});
+
+// ---------------------------------------------------------------
+// POST /b2c-timeout — queue timeout callback
+// ---------------------------------------------------------------
+router.post('/b2c-timeout', async (req, res) => {
+  res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+
+  try {
+    const result = req.body && req.body.Result;
+    if (!result) return;
+
+    const originatorId = result.OriginatorConversationID;
+    const resultDesc = result.ResultDesc || 'Queue timeout';
+
+    const [rows] = await db.query(
+      'SELECT id FROM daraja_requests WHERE b2c_originator_conversation_id = ? LIMIT 1',
+      [originatorId]
+    );
+
+    if (rows.length) {
+      await db.query(
+        `UPDATE daraja_requests
+            SET status = 'timeout',
+                result_desc = ?,
+                raw_callback = ?
+          WHERE id = ?`,
+        [resultDesc, JSON.stringify(req.body), rows[0].id]
+      );
+
+      console.warn('[daraja b2c-timeout]', originatorId, resultDesc);
+    }
+  } catch (err) {
+    console.error('[daraja b2c-timeout]', err.message);
+  }
+});
+
 module.exports = router;
