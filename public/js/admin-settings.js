@@ -359,6 +359,18 @@
         b2cMasked.value = '(no initiator password configured)';
       }
 
+      var credStatus = $('darajaB2cCredStatus');
+      var credMasked = $('darajaB2cCredMasked');
+      if (b2c.has_security_credential) {
+        credStatus.textContent = '✅ Set';
+        credStatus.style.color = 'var(--pos)';
+        credMasked.value = '•••••••••••••••• (encrypted)';
+      } else {
+        credStatus.textContent = '⚠️ Not set';
+        credStatus.style.color = 'var(--neg)';
+        credMasked.value = '(no SecurityCredential configured)';
+      }
+
       var warn = $('darajaWarn');
       if (!d.encryption_configured) {
         warn.textContent = 'Encryption key is not configured on the server. Saving credentials is disabled.';
@@ -392,6 +404,7 @@
     wireChange('darajaSecretChangeBtn', 'darajaSecretNew');
     wireChange('darajaPasskeyChangeBtn', 'darajaPasskeyNew');
     wireChange('darajaB2cChangeBtn', 'darajaB2cNew');
+    wireChange('darajaB2cCredChangeBtn', 'darajaB2cCredNew');
 
     var saveBtn = $('darajaSaveBtn');
     if (saveBtn) {
@@ -407,6 +420,7 @@
           b2c_shortcode: $('darajaB2cShortcode').value.trim(),
           b2c_initiator_name: $('darajaB2cInitiatorName').value.trim(),
           b2c_initiator_pass: $('darajaB2cNew').value,
+          b2c_security_credential: $('darajaB2cCredNew').value,
         };
         try {
           var res = await fetch('/api/admin/settings/daraja', {
@@ -423,9 +437,11 @@
             $('darajaSecretNew').value = '';
             $('darajaPasskeyNew').value = '';
             $('darajaB2cNew').value = '';
+            $('darajaB2cCredNew').value = '';
             $('darajaSecretNew').style.display = 'none';
             $('darajaPasskeyNew').style.display = 'none';
             $('darajaB2cNew').style.display = 'none';
+            $('darajaB2cCredNew').style.display = 'none';
             await loadDaraja();
           }
         } catch (e) {
@@ -459,6 +475,33 @@
         } finally {
           testBtn.disabled = false;
           testBtn.textContent = '🔌 Test connection';
+        }
+      });
+    }
+
+    var b2cTestBtn = $('darajaB2cTestBtn');
+    if (b2cTestBtn) {
+      b2cTestBtn.addEventListener('click', async function () {
+        b2cTestBtn.disabled = true;
+        b2cTestBtn.textContent = 'Testing B2C…';
+        try {
+          var res = await fetch('/api/admin/settings/daraja/b2c-test', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+          });
+          var data = await res.json();
+          if (data.ok) {
+            showDarajaStatus('✅ B2C sent to test MSISDN. Check sandbox simulator.', 'ok');
+          } else {
+            showDarajaStatus('❌ ' + (data.error || 'Failed'), 'error');
+          }
+        } catch (e) {
+          showDarajaStatus('Network error', 'error');
+        } finally {
+          b2cTestBtn.disabled = false;
+          b2cTestBtn.textContent = '🔌 Test B2C';
         }
       });
     }

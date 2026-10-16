@@ -307,10 +307,24 @@
             </div>
             <input type="password" id="darajaB2cNew" maxlength="200" placeholder="Paste new initiator password" style="display:none;width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono);margin-top:6px">
           </div>
+
+          <div style="margin-top:12px">
+            <label style="font-size:12.5px;font-weight:600;display:block;margin-bottom:4px">
+              SecurityCredential
+              <span id="darajaB2cCredStatus" style="font-size:11px;font-weight:500;color:var(--ink-500);margin-left:8px">—</span>
+            </label>
+            <div id="darajaB2cCredRow" style="display:flex;gap:8px;align-items:center">
+              <input type="text" id="darajaB2cCredMasked" readonly value="" style="flex:1;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;background:var(--surface-2);color:var(--ink-500);font-family:var(--font-mono)">
+              <button type="button" class="btn-sm btn-outline" id="darajaB2cCredChangeBtn" style="white-space:nowrap">Change</button>
+            </div>
+            <input type="password" id="darajaB2cCredNew" maxlength="2000" placeholder="Paste SecurityCredential from Safaricom" style="display:none;width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px;font-family:var(--font-mono);margin-top:6px">
+            <p class="muted small" style="margin:4px 0 0;font-size:11px">Pre-computed by Safaricom. Request from apisupport@safaricom.co.ke if you don't have one.</p>
+          </div>
         </div>
 
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:6px">
-          <button type="button" class="btn-sm btn-outline" id="darajaTestBtn">🔌 Test connection</button>
+          <button type="button" class="btn-sm btn-outline" id="darajaTestBtn">🔌 Test STK</button>
+          <button type="button" class="btn-sm btn-outline" id="darajaB2cTestBtn">🔌 Test B2C</button>
           <button type="button" class="btn-sm btn-dark" id="darajaSaveBtn">Save M-Pesa settings</button>
           <span id="darajaStatus" style="font-size:12.5px;display:none"></span>
         </div>
