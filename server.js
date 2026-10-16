@@ -31,6 +31,7 @@ const adminDividends = require('./app/routes/admin-dividends');
 const meDividends = require('./app/routes/me-dividends');
 const pdfRoutes = require('./app/routes/pdf');
 const brandingRoutes = require('./app/routes/branding');
+const darajaRoutes = require('./app/routes/daraja');
 const pushRoutes = require('./app/routes/push');
 
 const app = express();
@@ -119,6 +120,7 @@ app.get('/favicon/:size', (req, res) => {
 // ============================================================
 // API routes
 // ============================================================
+app.use('/api/daraja', darajaRoutes);
 app.use('/api/branding', brandingRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', signupRoutes);
