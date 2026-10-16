@@ -23,7 +23,7 @@ const stkSchema = Joi.object({
 });
 
 router.post('/stk-push', authenticate, async (req, res) => {
-  if (!daraja.isConfigured()) {
+  if (!(await daraja.isConfigured())) {
     return res.status(503).json({ error: 'M-Pesa not configured' });
   }
 
@@ -90,7 +90,7 @@ const stkSavingsSchema = Joi.object({
 });
 
 router.post('/stk-push-savings', authenticate, async (req, res) => {
-  if (!daraja.isConfigured()) {
+  if (!(await daraja.isConfigured())) {
     return res.status(503).json({ error: 'M-Pesa not configured' });
   }
 

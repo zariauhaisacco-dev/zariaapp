@@ -4,6 +4,8 @@ const db = require('../db');
 const audit = require('../services/audit');
 const savings = require('../services/savings');
 const uploads = require('../services/uploads');
+const daraja = require('../services/daraja');
+const cryptoService = require('../services/settings-crypto');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -344,6 +346,164 @@ router.delete('/logo', async (req, res) => {
   } catch (err) {
     console.error('[settings logo delete]', err.message);
     res.status(500).json({ error: 'Could not reset logo' });
+  }
+});
+
+
+// ---------------------------------------------------------------
+// Daraja (M-Pesa) settings
+// ---------------------------------------------------------------
+
+// Mask a value for display: keep first 6 chars, add ellipsis
+function maskValue(v) {
+  if (!v) return '';
+  const s = String(v);
+  if (s.length <= 8) return '••••';
+  return s.slice(0, 6) + '…' + s.slice(-4);
+}
+
+router.get('/daraja', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      "SELECT setting_key, setting_value FROM app_settings WHERE setting_key LIKE 'daraja_%'"
+    );
+    const map = {};
+    rows.forEach(r => { map[r.setting_key] = r.setting_value; });
+
+    // Determine source for each field
+    const envFallbacks = {
+      env: process.env.DARAJA_ENV,
+      shortcode: process.env.DARAJA_SHORTCODE,
+      consumerKey: process.env.DARAJA_CONSUMER_KEY,
+      callbackUrl: process.env.DARAJA_CALLBACK_URL,
+    };
+
+    const sources = {
+      env: map.daraja_env ? 'db' : (envFallbacks.env ? 'env' : 'unset'),
+      shortcode: map.daraja_shortcode ? 'db' : (envFallbacks.shortcode ? 'env' : 'unset'),
+      consumer_key: map.daraja_consumer_key ? 'db' : (envFallbacks.consumerKey ? 'env' : 'unset'),
+      consumer_secret: map.daraja_consumer_secret_enc ? 'db' : (process.env.DARAJA_CONSUMER_SECRET ? 'env' : 'unset'),
+      passkey: map.daraja_passkey_enc ? 'db' : (process.env.DARAJA_PASSKEY ? 'env' : 'unset'),
+    };
+
+    res.json({
+      env: map.daraja_env || envFallbacks.env || 'sandbox',
+      shortcode: map.daraja_shortcode || envFallbacks.shortcode || '',
+      consumer_key: maskValue(map.daraja_consumer_key || envFallbacks.consumerKey || ''),
+      has_consumer_secret: !!(map.daraja_consumer_secret_enc || process.env.DARAJA_CONSUMER_SECRET),
+      has_passkey: !!(map.daraja_passkey_enc || process.env.DARAJA_PASSKEY),
+      callback_url: map.daraja_callback_url || envFallbacks.callbackUrl || 'https://zariauhai.com/api/daraja/callback',
+      b2c: {
+        shortcode: map.daraja_b2c_shortcode || '',
+        initiator_name: map.daraja_b2c_initiator_name || '',
+        has_initiator_pass: !!map.daraja_b2c_initiator_pass_enc,
+      },
+      encryption_configured: cryptoService.isConfigured(),
+      sources: sources,
+    });
+  } catch (err) {
+    console.error('[settings daraja get]', err.message);
+    res.status(500).json({ error: 'Could not load Daraja settings' });
+  }
+});
+
+const darajaSchema = Joi.object({
+  env: Joi.string().valid('sandbox', 'production').required(),
+  shortcode: Joi.string().max(20).allow('', null),
+  consumer_key: Joi.string().max(120).allow('', null),
+  consumer_secret: Joi.string().max(200).allow('', null),   // blank = keep existing
+  passkey: Joi.string().max(200).allow('', null),           // blank = keep existing
+  callback_url: Joi.string().uri().max(300).allow('', null),
+  b2c_shortcode: Joi.string().max(20).allow('', null),
+  b2c_initiator_name: Joi.string().max(60).allow('', null),
+  b2c_initiator_pass: Joi.string().max(200).allow('', null),// blank = keep existing
+});
+
+router.post('/daraja', async (req, res) => {
+  const { error, value } = darajaSchema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  if (!cryptoService.isConfigured()) {
+    return res.status(500).json({
+      error: 'APP_ENCRYPTION_KEY is not set on the server. Cannot save credentials securely.',
+    });
+  }
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await savings.updateSetting('daraja_env', value.env, req.user.id, conn);
+    await savings.updateSetting('daraja_shortcode', value.shortcode || '', req.user.id, conn);
+    await savings.updateSetting('daraja_consumer_key', value.consumer_key || '', req.user.id, conn);
+    await savings.updateSetting('daraja_callback_url', value.callback_url || 'https://zariauhai.com/api/daraja/callback', req.user.id, conn);
+    await savings.updateSetting('daraja_b2c_shortcode', value.b2c_shortcode || '', req.user.id, conn);
+    await savings.updateSetting('daraja_b2c_initiator_name', value.b2c_initiator_name || '', req.user.id, conn);
+
+    // Only update secrets if provided (blank = keep existing)
+    const changedFields = ['env', 'shortcode', 'consumer_key', 'callback_url', 'b2c_shortcode', 'b2c_initiator_name'];
+
+    if (value.consumer_secret) {
+      await savings.updateSetting('daraja_consumer_secret_enc', cryptoService.encrypt(value.consumer_secret), req.user.id, conn);
+      changedFields.push('consumer_secret');
+    }
+    if (value.passkey) {
+      await savings.updateSetting('daraja_passkey_enc', cryptoService.encrypt(value.passkey), req.user.id, conn);
+      changedFields.push('passkey');
+    }
+    if (value.b2c_initiator_pass) {
+      await savings.updateSetting('daraja_b2c_initiator_pass_enc', cryptoService.encrypt(value.b2c_initiator_pass), req.user.id, conn);
+      changedFields.push('b2c_initiator_pass');
+    }
+
+    await conn.commit();
+
+    // Force the Daraja service to reload its cached config
+    daraja.reloadConfig();
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'settings.daraja_updated',
+      entityType: 'app_settings',
+      newValues: { fields_changed: changedFields, env: value.env },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({ ok: true, fields_changed: changedFields });
+  } catch (err) {
+    try { await conn.rollback(); } catch (_) {}
+    console.error('[settings daraja update]', err.message);
+    res.status(500).json({ error: 'Could not save Daraja settings' });
+  } finally {
+    conn.release();
+  }
+});
+
+router.post('/daraja/test', async (req, res) => {
+  try {
+    if (!(await daraja.isConfigured())) {
+      return res.status(400).json({ ok: false, error: 'Daraja credentials are incomplete' });
+    }
+    // Force fresh token
+    daraja.invalidateToken();
+    const token = await daraja.getToken();
+    if (!token) {
+      return res.status(400).json({ ok: false, error: 'No token returned' });
+    }
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'settings.daraja_test_succeeded',
+      entityType: 'app_settings',
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[settings daraja test]', err.message);
+    res.status(400).json({ ok: false, error: err.message });
   }
 });
 

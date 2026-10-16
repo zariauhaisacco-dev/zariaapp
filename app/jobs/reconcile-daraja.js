@@ -25,7 +25,7 @@ function log(...args) {
 }
 
 async function main() {
-  if (!daraja.isConfigured()) {
+  if (!(await daraja.isConfigured())) {
     log('skipped — Daraja not configured');
     return;
   }
