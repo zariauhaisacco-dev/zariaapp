@@ -52,11 +52,22 @@ async function loadB2cConfig() {
     catch (err) { console.error('[daraja-b2c] decrypt security_credential failed:', err.message); }
   }
 
+  // B2C consumer credentials (from a separate Daraja app).
+  // Fall back to STK credentials if B2C-specific ones aren't set.
+  let consumerKey = map.daraja_b2c_consumer_key || '';
+  let consumerSecret = '';
+  if (map.daraja_b2c_consumer_secret_enc) {
+    try { consumerSecret = crypto.decrypt(map.daraja_b2c_consumer_secret_enc); }
+    catch (err) { console.error('[daraja-b2c] decrypt consumer_secret failed:', err.message); }
+  }
+
   cachedB2cConfig = {
     shortcode: map.daraja_b2c_shortcode || '',
     initiatorName: map.daraja_b2c_initiator_name || '',
     initiatorPass: initiatorPass,
     securityCredential: securityCredential,
+    consumerKey: consumerKey,
+    consumerSecret: consumerSecret,
   };
 
   return cachedB2cConfig;
@@ -64,6 +75,48 @@ async function loadB2cConfig() {
 
 function reloadB2cConfig() {
   cachedB2cConfig = null;
+  cachedB2cToken = null;
+  b2cTokenExpiresAt = 0;
+}
+
+// B2C-specific token cache
+let cachedB2cToken = null;
+let b2cTokenExpiresAt = 0;
+
+async function getB2cToken() {
+  if (cachedB2cToken && Date.now() < b2cTokenExpiresAt) {
+    return cachedB2cToken;
+  }
+
+  const c = await loadB2cConfig();
+
+  // If B2C-specific credentials are set, use them.
+  // Otherwise fall back to the STK service's token.
+  if (!c.consumerKey || !c.consumerSecret) {
+    console.warn('[daraja-b2c] no B2C-specific credentials, falling back to STK token');
+    return daraja.getToken();
+  }
+
+  const envConfig = await daraja.loadConfig();
+  const auth = Buffer.from(c.consumerKey + ':' + c.consumerSecret).toString('base64');
+
+  const res = await fetch(envConfig.baseUrl + '/oauth/v1/generate?grant_type=client_credentials', {
+    method: 'GET',
+    headers: { Authorization: 'Basic ' + auth },
+  });
+
+  if (!res.ok) {
+    throw new Error('B2C auth failed: HTTP ' + res.status);
+  }
+
+  const data = await res.json();
+  if (!data.access_token) {
+    throw new Error('B2C auth returned no token');
+  }
+
+  cachedB2cToken = data.access_token;
+  b2cTokenExpiresAt = Date.now() + (parseInt(data.expires_in, 10) - 60) * 1000;
+  return cachedB2cToken;
 }
 
 async function isConfigured() {
@@ -89,10 +142,16 @@ async function sendB2C(opts) {
     throw new Error('B2C is not configured. Set initiator and SecurityCredential in admin settings.');
   }
 
-  const token = await daraja.getToken();
+  const token = await getB2cToken();
   const envConfig = await daraja.loadConfig();
 
+  // OriginatorConversationID is required by the B2C v3 endpoint.
+  // Format: <shortcode>_<segment>_<random-hex>
+  const crypto = require('crypto');
+  const originatorId = c.shortcode + '_ZARIA_' + crypto.randomBytes(8).toString('hex');
+
   const body = {
+    OriginatorConversationID: originatorId,
     InitiatorName: c.initiatorName,
     SecurityCredential: c.securityCredential,
     CommandID: COMMAND_ID,
@@ -134,6 +193,7 @@ module.exports = {
   isConfigured,
   loadB2cConfig,
   reloadB2cConfig,
+  getB2cToken,
   sendB2C,
   IDENTIFIER_TYPE,
   COMMAND_ID,
