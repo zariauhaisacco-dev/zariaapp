@@ -8,6 +8,7 @@ const db = require('../db');
 const audit = require('../services/audit');
 const daraja = require('../services/daraja');
 const loans = require('../services/loans');
+const reconcile = require('../services/daraja-reconcile');
 const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
@@ -81,6 +82,73 @@ router.post('/stk-push', authenticate, async (req, res) => {
 });
 
 // ---------------------------------------------------------------
+// POST /stk-push-savings — client saves via M-Pesa
+// ---------------------------------------------------------------
+const stkSavingsSchema = Joi.object({
+  phone: Joi.string().pattern(/^2547\d{8}$/).required(),
+  amount: Joi.number().integer().min(100).max(500000).required(),
+});
+
+router.post('/stk-push-savings', authenticate, async (req, res) => {
+  if (!daraja.isConfigured()) {
+    return res.status(503).json({ error: 'M-Pesa not configured' });
+  }
+
+  const { error, value } = stkSavingsSchema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  try {
+    const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
+    if (!cl.length) return res.status(404).json({ error: 'Client not found' });
+    const clientId = cl[0].id;
+
+    // Auto-create savings account if missing
+    const savings = require('../services/savings');
+    let account = await savings.getAccountByClient(clientId);
+    if (!account) {
+      const newId = await savings.createAccountForClient(clientId);
+      account = await savings.getAccountById(newId);
+    }
+    if (!account) {
+      return res.status(500).json({ error: 'Could not open savings account' });
+    }
+
+    const result = await daraja.stkPush({
+      phone: value.phone,
+      amount: value.amount,
+      accountReference: 'SAVE-' + clientId,
+      description: 'Savings deposit',
+    });
+
+    await db.query(
+      "INSERT INTO daraja_requests (client_id, savings_account_id, checkout_request_id, merchant_request_id, phone, amount, direction, status) VALUES (?, ?, ?, ?, ?, ?, 'stk_push', 'pending')",
+      [clientId, account.id, result.checkoutRequestId, result.merchantRequestId,
+       value.phone, value.amount]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'client',
+      action: 'daraja.stk_push_savings_initiated',
+      entityType: 'savings_account',
+      entityId: account.id,
+      newValues: { amount: value.amount, checkout_request_id: result.checkoutRequestId },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    res.json({
+      ok: true,
+      checkout_request_id: result.checkoutRequestId,
+      message: 'Enter your M-Pesa PIN on your phone.',
+    });
+  } catch (err) {
+    console.error('[daraja stk-push-savings]', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------
 // GET /status/:checkoutId
 // ---------------------------------------------------------------
 router.get('/status/:checkoutId', authenticate, async (req, res) => {
@@ -113,7 +181,7 @@ router.post('/callback', async (req, res) => {
     const resultDesc = body.ResultDesc;
 
     const [rows] = await db.query(
-      'SELECT id, client_id, loan_id, phone, amount FROM daraja_requests WHERE checkout_request_id = ? LIMIT 1',
+      'SELECT id, client_id, loan_id, savings_account_id, phone, amount FROM daraja_requests WHERE checkout_request_id = ? LIMIT 1',
       [checkoutRequestId]
     );
     if (!rows.length) {
@@ -136,59 +204,48 @@ router.post('/callback', async (req, res) => {
       return;
     }
 
-    let verified = false;
+    // Extract the receipt directly from the callback body.
+    // Daraja's stkQuery endpoint has a known race condition where it
+    // returns null/stale data for a few seconds after a successful push.
+    // Trust the body when it contains a valid MpesaReceiptNumber.
     let mpesaReceipt = null;
-    try {
-      const q = await daraja.stkQuery({ checkoutRequestId });
-      if (q.resultCode === 0) {
+    let verified = false;
+
+    const items = body.CallbackMetadata && body.CallbackMetadata.Item;
+    if (Array.isArray(items)) {
+      const rec = items.find(i => i.Name === 'MpesaReceiptNumber');
+      if (rec && rec.Value) {
+        mpesaReceipt = String(rec.Value);
         verified = true;
-        const items = body.CallbackMetadata && body.CallbackMetadata.Item;
-        if (Array.isArray(items)) {
-          const rec = items.find(i => i.Name === 'MpesaReceiptNumber');
-          if (rec) mpesaReceipt = rec.Value;
-        }
       }
-    } catch (e) {
-      console.error('[daraja callback verify]', e.message);
     }
 
     if (!verified) {
-      await db.query(
-        'UPDATE daraja_requests SET status = ?, result_code = ?, result_desc = ? WHERE id = ?',
-        ['failed', resultCode, 'Callback failed verification', reqRow.id]
-      );
+      try {
+        const q = await daraja.stkQuery({ checkoutRequestId });
+        if (q.resultCode === 0 && q.raw && q.raw.MpesaReceiptNumber) {
+          mpesaReceipt = q.raw.MpesaReceiptNumber;
+          verified = true;
+        }
+      } catch (e) {
+        console.error('[daraja callback verify]', e.message);
+      }
+    }
+
+    if (!verified) {
+      await reconcile.recordFailure(reqRow, resultCode, 'Callback missing MpesaReceiptNumber');
       return;
     }
 
-    await loans.recordPayment({
-      loanId: reqRow.loan_id,
-      amount: Number(reqRow.amount),
-      mpesaReceipt: mpesaReceipt,
-      reference: 'MPESA-STK',
-      notes: 'M-Pesa STK Push',
-      recordedBy: null,
-    });
-
-    await db.query(
-      "UPDATE daraja_requests SET status = 'success', result_code = 0, result_desc = ?, mpesa_receipt = ? WHERE id = ?",
-      [resultDesc, mpesaReceipt, reqRow.id]
-    );
-
-    await audit.log({
-      actorRole: 'system',
-      action: 'daraja.payment_recorded',
-      entityType: 'loan',
-      entityId: reqRow.loan_id,
-      newValues: {
-        amount: reqRow.amount,
-        mpesa_receipt: mpesaReceipt,
-        checkout_request_id: checkoutRequestId,
-      },
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-    });
-
-    console.log('[daraja callback] payment recorded for loan', reqRow.loan_id);
+    try {
+      await reconcile.recordSuccess(reqRow, mpesaReceipt, resultDesc, {
+        source: 'callback',
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+      });
+    } catch (e) {
+      console.error('[daraja callback] recordSuccess failed:', e.message);
+    }
   } catch (err) {
     console.error('[daraja callback]', err.message);
   }

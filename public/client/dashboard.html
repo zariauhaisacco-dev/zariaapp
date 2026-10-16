@@ -98,7 +98,7 @@
 
     <section class="client-primary" id="clientHero">
       <div class="label">Loading…</div>
-      <div class="amount"><span class="unit">KES</span>—</div>
+      <div class="amount masked-balance" data-masked><span class="unit">KES</span>—</div>
     </section>
 
     <section class="client-money-strip" id="moneyStrip" aria-label="My money">
@@ -108,7 +108,7 @@
         </div>
         <div class="money-body">
           <div class="money-label">Savings balance</div>
-          <div class="money-value" id="moneySavingsValue"><span class="unit">KES</span>—</div>
+          <div class="money-value masked-balance" id="moneySavingsValue" data-masked><span class="unit">KES</span>—</div>
           <div class="money-sub" id="moneySavingsSub">—</div>
         </div>
       </div>
@@ -119,7 +119,7 @@
         </div>
         <div class="money-body">
           <div class="money-label">Shares held</div>
-          <div class="money-value" id="moneySharesValue">—</div>
+          <div class="money-value masked-balance" id="moneySharesValue" data-masked>—</div>
           <div class="money-sub" id="moneySharesSub">—</div>
         </div>
       </div>
@@ -130,7 +130,7 @@
         </div>
         <div class="money-body">
           <div class="money-label">Dividends earned</div>
-          <div class="money-value" id="moneyDividendsValue"><span class="unit">KES</span>—</div>
+          <div class="money-value masked-balance" id="moneyDividendsValue" data-masked><span class="unit">KES</span>—</div>
           <div class="money-sub" id="moneyDividendsSub">—</div>
         </div>
       </div>
@@ -162,6 +162,76 @@
       </div>
     </section>
   </main>
+
+</div>
+
+<!-- M-Pesa STK Push modal -->
+<div class="stk-overlay" id="stkOverlay" hidden>
+  <div class="stk-modal" role="dialog" aria-modal="true" aria-labelledby="stkTitle">
+    <!-- State 1: amount + phone form -->
+    <div id="stkForm">
+      <div class="stk-head">
+        <h2 id="stkTitle">Pay via M-Pesa</h2>
+        <button class="stk-close" id="stkCloseBtn" aria-label="Close">×</button>
+      </div>
+      <div class="stk-body">
+        <label class="stk-label">Amount (KES)</label>
+        <input type="number" id="stkAmount" min="1" step="1" inputmode="numeric" class="stk-input">
+        <p class="stk-hint" id="stkAmountHint">Max: KES —</p>
+
+        <label class="stk-label">M-Pesa phone number</label>
+        <input type="tel" id="stkPhone" pattern="2547[0-9]{8}" inputmode="numeric" class="stk-input" placeholder="2547XXXXXXXX">
+        <p class="stk-hint">Format: 2547XXXXXXXX (Safaricom / Airtel)</p>
+
+        <p class="stk-error" id="stkError" hidden></p>
+      </div>
+      <div class="stk-actions">
+        <button type="button" class="stk-btn stk-btn-primary" id="stkSubmitBtn">Pay now</button>
+        <button type="button" class="stk-btn stk-btn-ghost" id="stkCancelBtn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- State 2: waiting for PIN -->
+    <div id="stkWaiting" hidden>
+      <div class="stk-head">
+        <h2>Check your phone</h2>
+      </div>
+      <div class="stk-body stk-body-center">
+        <div class="stk-spinner"></div>
+        <p class="stk-wait-text">Enter your M-Pesa PIN to complete payment</p>
+        <p class="stk-hint">Waiting for confirmation…</p>
+      </div>
+    </div>
+
+    <!-- State 3: success -->
+    <div id="stkSuccess" hidden>
+      <div class="stk-head">
+        <h2>✓ Payment received</h2>
+      </div>
+      <div class="stk-body stk-body-center">
+        <p class="stk-success-amount" id="stkSuccessAmount">KES —</p>
+        <p class="stk-hint">Receipt: <strong id="stkSuccessReceipt">—</strong></p>
+      </div>
+      <div class="stk-actions">
+        <button type="button" class="stk-btn stk-btn-primary" id="stkDoneBtn">Done</button>
+      </div>
+    </div>
+
+    <!-- State 4: failure -->
+    <div id="stkFailed" hidden>
+      <div class="stk-head">
+        <h2>Payment not completed</h2>
+      </div>
+      <div class="stk-body stk-body-center">
+        <p class="stk-fail-text" id="stkFailReason">The payment was not completed.</p>
+      </div>
+      <div class="stk-actions">
+        <button type="button" class="stk-btn stk-btn-primary" id="stkRetryBtn">Try again</button>
+        <button type="button" class="stk-btn stk-btn-ghost" id="stkCloseFailBtn">Close</button>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <script src="/js/client-dashboard.js?v=1791964210674" defer></script>

@@ -10,6 +10,20 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function fmtProgress(repaid, total) {
+    if (!(total > 0)) return '0%';
+    var raw = (repaid / total) * 100;
+    if (raw > 0 && raw < 1) return '<1%';
+    return Math.round(raw) + '%';
+  }
+
+  function pctWidth(repaid, total) {
+    if (!(total > 0)) return 0;
+    var pct = (repaid / total) * 100;
+    if (pct > 0 && pct < 2) return 2; // visible sliver for any progress
+    return Math.min(pct, 100);
+  }
+
   function fmtMoney(n) {
     n = Number(n) || 0;
     return n.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -41,9 +55,44 @@
     var ss = $('moneySavingsSub');
     if (summary.savings) {
       sv.innerHTML = '<span class="unit">KES</span>' + fmtMoney(summary.savings.balance);
+
+      // Add "Save money" button to the savings card
+      setTimeout(function () {
+        var card = document.getElementById('moneySavings');
+        if (card && !document.getElementById('saveMoneyBtn')) {
+          var btn = document.createElement('button');
+          btn.id = 'saveMoneyBtn';
+          btn.className = 'btn-sm btn-amber';
+          btn.style.cssText = 'margin-top:10px;font-size:12.5px;padding:7px 12px';
+          btn.innerHTML = '+ Save money';
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openStkModal({ target: 'savings' });
+          });
+          var body = card.querySelector('.money-body');
+          if (body) body.appendChild(btn);
+        }
+      }, 0);
       ss.textContent = 'Acct ' + escapeHtml(summary.savings.account_number);
     } else {
       sv.innerHTML = '<span class="unit">KES</span>0';
+
+      setTimeout(function () {
+        var card = document.getElementById('moneySavings');
+        if (card && !document.getElementById('saveMoneyBtn')) {
+          var btn = document.createElement('button');
+          btn.id = 'saveMoneyBtn';
+          btn.className = 'btn-sm btn-amber';
+          btn.style.cssText = 'margin-top:10px;font-size:12.5px;padding:7px 12px';
+          btn.innerHTML = '+ Save money';
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openStkModal({ target: 'savings' });
+          });
+          var body = card.querySelector('.money-body');
+          if (body) body.appendChild(btn);
+        }
+      }, 0);
       ss.textContent = 'No savings account yet';
     }
 
@@ -83,16 +132,23 @@
 
       var total = Number(loan.total_repayable);
       var repaid = Number(loan.amount_repaid);
-      var pct = total > 0 ? Math.round((repaid / total) * 100) : 0;
       var outstanding = total - repaid;
+      var pctLabel = fmtProgress(repaid, total);
+      var pctWidthValue = pctWidth(repaid, total);
 
       hero.innerHTML =
         '<div class="label">Next payment</div>' +
-        '<div class="amount"><span class="unit">KES</span>' + fmtMoney(next.amountRemaining) + '</div>' +
+        '<div class="amount-row">' +
+          '<div class="amount masked-balance" data-masked><span class="unit">KES</span>' + fmtMoney(next.amountRemaining) + '</div>' +
+          '<button class="eye-inline" id="heroEye" aria-label="Hide balances" title="Hide / show balances">' +
+            '<svg class="eye-visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>' +
+            '<svg class="eye-masked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a18.45 18.45 0 0 1 4.06-5.06"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M1 1l22 22"/></svg>' +
+          '</button>' +
+        '</div>' +
         '<div class="meta">Due <strong style="color:#fff">' + fmtDate(next.dueDate) + '</strong>' + (dueText ? ' · ' + dueText : '') + '</div>' +
         '<div class="progress-row">' +
-          '<span>' + pct + '% repaid</span>' +
-          '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+          '<span>' + pctLabel + ' repaid · KES ' + fmtMoney(repaid) + ' of ' + fmtMoney(total) + '</span>' +
+          '<div class="progress-bar"><div class="progress-fill" style="width:' + pctWidthValue + '%"></div></div>' +
           '<span>KES ' + fmtMoney(outstanding) + ' left</span>' +
         '</div>' +
         '<div class="client-actions">' +
@@ -103,11 +159,27 @@
           '<a href="/client/loans" class="btn-ghost-light" style="text-decoration:none">View schedule</a>' +
         '</div>';
 
-      if ($('payBtn')) {
-        $('payBtn').addEventListener('click', function () {
-          alert('M-Pesa STK push integration coming in Phase 4. Contact us on 0746 138 896 to pay.');
-        });
-      }
+      setTimeout(function () {
+        var eye = document.getElementById('heroEye');
+        if (eye) {
+          eye.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var on = !document.body.classList.contains('is-masked');
+            document.body.classList.toggle('is-masked', on);
+            localStorage.setItem('zaria.mask.balances', on ? '1' : '0');
+          });
+        }
+        var pay = document.getElementById('payBtn');
+        if (pay) {
+          pay.addEventListener('click', function () {
+            openStkModal({
+              loanId: loan.id,
+              outstanding: outstanding,
+              defaultPhone: (window.__mePhone || '') || ''
+            });
+          });
+        }
+      }, 0);
       return;
     }
 
@@ -160,12 +232,12 @@
         '<span class="pill ' + statusClass + '">' + loan.status + '</span>' +
       '</div>' +
       '<div class="kv-list">' +
-        '<div class="kv-row"><span class="kv-label">Principal</span><span class="kv-value">KES ' + fmtMoney(loan.principal) + '</span></div>' +
+        '<div class="kv-row"><span class="kv-label">Principal</span><span class="kv-value masked-balance" data-masked>KES ' + fmtMoney(loan.principal) + '</span></div>' +
         '<div class="kv-row"><span class="kv-label">Interest rate</span><span class="kv-value">' + (Number(loan.interest_rate) * 100).toFixed(1) + '% flat</span></div>' +
         '<div class="kv-row"><span class="kv-label">Term</span><span class="kv-value">' + loan.term_months + ' month' + (loan.term_months === 1 ? '' : 's') + '</span></div>' +
-        '<div class="kv-row"><span class="kv-label">Total repayable</span><span class="kv-value">KES ' + fmtMoney(loan.total_repayable) + '</span></div>' +
-        '<div class="kv-row"><span class="kv-label">Total repaid</span><span class="kv-value" style="color:var(--pos)">KES ' + fmtMoney(loan.amount_repaid) + '</span></div>' +
-        '<div class="kv-row"><span class="kv-label">Outstanding</span><span class="kv-value">KES ' + fmtMoney(Number(loan.total_repayable) - Number(loan.amount_repaid)) + '</span></div>' +
+        '<div class="kv-row"><span class="kv-label">Total repayable</span><span class="kv-value masked-balance" data-masked>KES ' + fmtMoney(loan.total_repayable) + '</span></div>' +
+        '<div class="kv-row"><span class="kv-label">Total repaid</span><span class="kv-value masked-balance" data-masked style="color:var(--pos)">KES ' + fmtMoney(loan.amount_repaid) + '</span></div>' +
+        '<div class="kv-row"><span class="kv-label">Outstanding</span><span class="kv-value masked-balance" data-masked>KES ' + fmtMoney(Number(loan.total_repayable) - Number(loan.amount_repaid)) + '</span></div>' +
       '</div>';
   }
 
@@ -199,7 +271,7 @@
         '<div class="feed-icon ' + icon + '">' + iconSvg + '</div>' +
         '<div class="feed-text">' + label + '<br><span style="color:var(--ink-500);font-size:12px">' + sub + '</span></div>' +
         '<div class="feed-time" style="text-align:right">' +
-          '<div style="color:var(--ink-900);font-weight:600;font-family:var(--font-mono)">' + sign + fmtMoney(t.amount) + '</div>' +
+          '<div class="masked-balance" data-masked style="color:var(--ink-900);font-weight:600;font-family:var(--font-mono)">' + sign + fmtMoney(t.amount) + '</div>' +
           '<div>' + fmtDate(t.created_at) + '</div>' +
         '</div>' +
       '</div>';
@@ -216,6 +288,257 @@
   // ---------------------------------------------------------------
   // Avatar / logout
   // ---------------------------------------------------------------
+
+  // ---------------------------------------------------------------
+  // M-Pesa STK Push modal
+  // ---------------------------------------------------------------
+  var stkState = { target: 'loan', loanId: null, outstanding: 0, checkoutId: null, pollTimer: null };
+
+  function showStkState(which) {
+    ['stkForm', 'stkWaiting', 'stkSuccess', 'stkFailed'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = (id !== which);
+    });
+  }
+
+  function openStkModal(opts) {
+    stkState.target = opts.target || 'loan';
+    stkState.loanId = opts.loanId || null;
+    stkState.outstanding = opts.outstanding || 0;
+    stkState.checkoutId = null;
+
+    // Adjust modal title + button per target
+    var title = document.getElementById('stkTitle');
+    if (title) title.textContent = stkState.target === 'savings' ? 'Save via M-Pesa' : 'Pay via M-Pesa';
+    var submitBtn = document.getElementById('stkSubmitBtn');
+    if (submitBtn) submitBtn.textContent = stkState.target === 'savings' ? 'Save now' : 'Pay now';
+    var hint = document.getElementById('stkAmountHint');
+    if (hint) {
+      if (stkState.target === 'savings') {
+        hint.textContent = 'Minimum: KES 100';
+      } else {
+        hint.textContent = 'Max: KES ' + Number(opts.outstanding || 0).toLocaleString('en-KE');
+      }
+    }
+    if (stkState.pollTimer) { clearInterval(stkState.pollTimer); stkState.pollTimer = null; }
+
+    var overlay = document.getElementById('stkOverlay');
+    if (!overlay) return;
+
+    var amt = document.getElementById('stkAmount');
+    if (amt) {
+      amt.value = stkState.target === 'savings' ? 100 : Math.round(opts.outstanding || 0);
+      amt.min = stkState.target === 'savings' ? 100 : 1;
+    }
+
+    var phone = document.getElementById('stkPhone');
+    if (phone) phone.value = opts.defaultPhone || '';
+
+    var err = document.getElementById('stkError');
+    if (err) { err.hidden = true; err.textContent = ''; }
+
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    showStkState('stkForm');
+
+    setTimeout(function () { if (amt) amt.focus(); }, 50);
+  }
+
+  function closeStkModal() {
+    var overlay = document.getElementById('stkOverlay');
+    if (overlay) overlay.hidden = true;
+    document.body.style.overflow = '';
+    if (stkState.pollTimer) { clearInterval(stkState.pollTimer); stkState.pollTimer = null; }
+  }
+
+  function stkShowError(msg) {
+    var err = document.getElementById('stkError');
+    if (err) { err.textContent = msg; err.hidden = false; }
+  }
+
+  async function submitStk() {
+    var amt = Number(document.getElementById('stkAmount').value);
+    var phone = String(document.getElementById('stkPhone').value || '').trim();
+
+    if (!(amt > 0)) return stkShowError('Enter a valid amount.');
+    if (stkState.target === 'savings') {
+      if (amt < 100) return stkShowError('Minimum savings deposit is KES 100.');
+    } else {
+      if (amt > stkState.outstanding) return stkShowError('Amount cannot exceed KES ' + stkState.outstanding.toFixed(2) + '.');
+    }
+    if (!/^2547[0-9]{8}$/.test(phone)) return stkShowError('Phone must be in format 2547XXXXXXXX.');
+
+    var btn = document.getElementById('stkSubmitBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+    try {
+      var endpoint = stkState.target === 'savings'
+        ? '/api/daraja/stk-push-savings'
+        : '/api/daraja/stk-push';
+      var payload = stkState.target === 'savings'
+        ? { phone: phone, amount: amt }
+        : { loan_id: stkState.loanId, phone: phone, amount: amt };
+
+      var res = await fetch(endpoint, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      var data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        stkShowError(data.error || 'Could not send STK push.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Pay now'; }
+        return;
+      }
+
+      stkState.checkoutId = data.checkout_request_id;
+      showStkState('stkWaiting');
+      pollStatus();
+
+    } catch (err) {
+      stkShowError('Network error. Try again.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Pay now'; }
+    }
+  }
+
+  function pollStatus() {
+    if (!stkState.checkoutId) return;
+    var attempts = 0;
+    var maxAttempts = 30;
+
+    stkState.pollTimer = setInterval(async function () {
+      attempts++;
+      try {
+        var res = await fetch('/api/daraja/status/' + encodeURIComponent(stkState.checkoutId), {
+          credentials: 'same-origin',
+        });
+        var data = await res.json();
+
+        if (data.status === 'success') {
+          clearInterval(stkState.pollTimer);
+          stkState.pollTimer = null;
+          var sa = document.getElementById('stkSuccessAmount');
+          var sr = document.getElementById('stkSuccessReceipt');
+          var st = document.querySelector('#stkSuccess h2');
+          if (st) st.textContent = stkState.target === 'savings' ? '✓ Savings received' : '✓ Payment received';
+          if (sa) sa.textContent = 'KES ' + Number(data.amount || 0).toLocaleString('en-KE');
+          if (sr) sr.textContent = data.mpesa_receipt || '—';
+          showStkState('stkSuccess');
+          return;
+        }
+
+        if (data.status && data.status !== 'pending') {
+          clearInterval(stkState.pollTimer);
+          stkState.pollTimer = null;
+          var fr = document.getElementById('stkFailReason');
+          if (fr) fr.textContent = data.result_desc || 'Payment was not completed.';
+          showStkState('stkFailed');
+          return;
+        }
+      } catch (e) {}
+
+      if (attempts >= maxAttempts) {
+        clearInterval(stkState.pollTimer);
+        stkState.pollTimer = null;
+        var fr2 = document.getElementById('stkFailReason');
+        if (fr2) fr2.textContent = 'Timed out waiting for confirmation. Please check your phone and try again.';
+        showStkState('stkFailed');
+      }
+    }, 2000);
+  }
+
+  function wireStkModal() {
+    var overlay = document.getElementById('stkOverlay');
+    if (!overlay) return;
+
+    var closeBtn = document.getElementById('stkCloseBtn');
+    if (closeBtn) closeBtn.addEventListener('click', closeStkModal);
+
+    var cancelBtn = document.getElementById('stkCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeStkModal);
+
+    var submitBtn = document.getElementById('stkSubmitBtn');
+    if (submitBtn) submitBtn.addEventListener('click', submitStk);
+
+    var doneBtn = document.getElementById('stkDoneBtn');
+    if (doneBtn) doneBtn.addEventListener('click', function () { window.location.reload(); });
+
+    var retryBtn = document.getElementById('stkRetryBtn');
+    if (retryBtn) retryBtn.addEventListener('click', function () { showStkState('stkForm'); });
+
+    var closeFail = document.getElementById('stkCloseFailBtn');
+    if (closeFail) closeFail.addEventListener('click', closeStkModal);
+
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeStkModal();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !overlay.hidden) closeStkModal();
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Privacy mask (hide/show balances)
+  // ---------------------------------------------------------------
+  var MASK_KEY = 'zaria.mask.balances';
+
+  function applyMaskState(on) {
+    if (on) {
+      document.body.classList.add('is-masked');
+    } else {
+      document.body.classList.remove('is-masked');
+    }
+    var btn = $('maskToggleBtn');
+    if (btn) {
+      btn.setAttribute('aria-label', on ? 'Show balances' : 'Hide balances');
+      btn.title = on ? 'Show balances' : 'Hide balances';
+    }
+  }
+
+  function wireMaskToggle() {
+    var saved = localStorage.getItem(MASK_KEY) === '1';
+    applyMaskState(saved);
+
+    var btn = $('maskToggleBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', function () {
+      var nowMasked = !document.body.classList.contains('is-masked');
+      applyMaskState(nowMasked);
+      localStorage.setItem(MASK_KEY, nowMasked ? '1' : '0');
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Collapsible cards
+  // ---------------------------------------------------------------
+  var COLLAPSE_KEY_PREFIX = 'zaria.collapse.';
+
+  function wireCollapse() {
+    document.querySelectorAll('.card[id]').forEach(function (card) {
+      var head = card.querySelector('.card-head');
+      if (!head) return;
+
+      // Mark as collapsible
+      head.classList.add('is-collapsible');
+
+      // Restore saved state
+      var id = card.id;
+      if (id && localStorage.getItem(COLLAPSE_KEY_PREFIX + id) === '1') {
+        card.classList.add('is-collapsed');
+      }
+
+      head.addEventListener('click', function () {
+        card.classList.toggle('is-collapsed');
+        if (id) {
+          localStorage.setItem(COLLAPSE_KEY_PREFIX + id, card.classList.contains('is-collapsed') ? '1' : '0');
+        }
+      });
+    });
+  }
 
   function wireAvatar(user) {
     var av = $('avatarBtn');
@@ -301,6 +624,10 @@
       if (me.user.role !== 'client') { window.location.replace('/admin/dashboard'); return; }
 
       wireAvatar(me.user);
+      window.__mePhone = me.user.phone || '';
+      wireStkModal();
+      wireMaskToggle();
+      wireCollapse();
       wireNotifications();
 
       var res = await fetch('/api/me/summary', { credentials: 'same-origin' });
