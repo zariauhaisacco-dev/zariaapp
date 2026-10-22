@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
-  var state = { q: '' };
+  var state = { q: '', filter: 'all', allClients: [] };
 
   function escapeHtml(s) {
     return String(s == null ? '' : s)
@@ -17,49 +17,125 @@
 
   async function load() {
     var tbody = $('clientsBody');
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>';
 
     try {
-      var qs = state.q ? '?q=' + encodeURIComponent(state.q) : '';
+      var qs = '?status=all' + (state.q ? '&q=' + encodeURIComponent(state.q) : '');
       var res = await fetch('/api/admin/clients' + qs, { credentials: 'same-origin' });
       if (res.status === 401) { window.location.replace('/'); return; }
       if (!res.ok) throw new Error('load failed');
       var data = await res.json();
-      render(data.clients || []);
+      state.allClients = data.clients || [];
+      updateTabCounts();
+      render();
     } catch (e) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--neg);padding:24px">Could not load</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--neg);padding:24px">Could not load</td></tr>';
     }
   }
 
-  function render(list) {
+  function updateTabCounts() {
+    var c = state.allClients;
+    $('countAll').textContent = c.length;
+    $('countActive').textContent = c.filter(function (x) { return x.status === 'active'; }).length;
+    $('countSuspended').textContent = c.filter(function (x) { return x.status === 'suspended'; }).length;
+    $('countClosed').textContent = c.filter(function (x) { return x.status === 'closed'; }).length;
+  }
+
+  function render() {
     var tbody = $('clientsBody');
-    $('countLabel').textContent = list.length + ' client' + (list.length === 1 ? '' : 's');
+    var list = state.allClients;
+
+    if (state.filter !== 'all') {
+      list = list.filter(function (c) { return c.status === state.filter; });
+    }
+
+    $('countLabel').textContent = list.length + ' client' + (list.length === 1 ? '' : 's') +
+      (state.filter !== 'all' ? ' (' + state.filter + ')' : '');
 
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--ink-500);padding:32px">No clients match</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink-500);padding:32px">No clients match</td></tr>';
       return;
     }
 
     tbody.innerHTML = list.map(function (c) {
       var statusClass = c.status === 'active' ? 'pos' : c.status === 'suspended' ? 'neg' : 'neutral';
-      return '<tr data-client-id="' + c.id + '" style="cursor:pointer">' +
+      var actions = '';
+      if (c.status === 'active') {
+        actions = '<button class="icon-btn" data-action="suspend" data-id="' + c.id + '" title="Suspend">⏸</button>';
+      } else if (c.status === 'suspended') {
+        actions = '<button class="icon-btn" data-action="activate" data-id="' + c.id + '" title="Activate">▶</button>';
+      }
+      if (c.status !== 'closed') {
+        actions += '<button class="icon-btn" data-action="close" data-id="' + c.id + '" title="Close account" style="color:var(--neg)">✕</button>';
+      }
+      return '<tr data-client-id="' + c.id + '">' +
         '<td><span class="name">' + escapeHtml(c.full_name) + '</span></td>' +
         '<td class="muted">' + escapeHtml(c.phone) + '</td>' +
         '<td class="muted">' + escapeHtml(c.national_id || '—') + '</td>' +
         '<td class="num">' + (c.active_loans || 0) + '</td>' +
         '<td><span class="pill ' + statusClass + '">' + c.status + '</span></td>' +
         '<td>' + fmtDate(c.created_at) + '</td>' +
+        '<td style="text-align:right;white-space:nowrap">' + actions + '</td>' +
       '</tr>';
     }).join('');
 
+    // Row click → detail (unless action button was clicked)
     tbody.querySelectorAll('tr[data-client-id]').forEach(function (tr) {
-      tr.addEventListener('click', function () {
+      tr.style.cursor = 'pointer';
+      tr.addEventListener('click', function (e) {
+        if (e.target.closest('[data-action]')) return;
         window.location.href = '/admin/clients/' + tr.getAttribute('data-client-id');
+      });
+    });
+
+    // Action buttons
+    tbody.querySelectorAll('[data-action]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        handleAction(btn.getAttribute('data-action'), Number(btn.getAttribute('data-id')));
+      });
+    });
+  }
+
+  async function handleAction(action, clientId) {
+    var newStatus = null;
+    var label = '';
+    if (action === 'suspend') { newStatus = 'suspended'; label = 'Suspend'; }
+    else if (action === 'activate') { newStatus = 'active'; label = 'Activate'; }
+    else if (action === 'close') { newStatus = 'closed'; label = 'Close account (they will not be able to log in)'; }
+    if (!newStatus) return;
+
+    if (!confirm(label + ' this client?')) return;
+
+    try {
+      var res = await fetch('/api/admin/clients/' + clientId + '/status', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      var data = await res.json();
+      if (!res.ok) { alert(data.error || 'Could not update'); return; }
+      await load();
+    } catch (e) {
+      alert('Network error');
+    }
+  }
+
+  function wireFilterTabs() {
+    document.querySelectorAll('.filter-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('.filter-tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        state.filter = tab.getAttribute('data-status');
+        render();
       });
     });
   }
 
   var searchTimer = null;
+  wireFilterTabs();
+
   $('searchInput').addEventListener('input', function (e) {
     state.q = e.target.value.trim();
     clearTimeout(searchTimer);

@@ -12,3 +12,31 @@ _backups/
 # Uploaded files — user data, never in git
 data/*
 !data/.gitkeep
+
+# Env file backups (also contain credentials)
+.env.before-*
+.env.deduped
+.env.*.bak
+
+# Code backups that don't match *.bak-*
+*.bak2-*
+*.before-*
+*.before-*
+
+# Import scripts (contain client PII)
+imports/
+*.import.sql
+
+# Test artifacts
+cleanup-*.sql
+fix-*.sql
+rebuild-*.sql
+recover-row-*.js
+dry-run-*.js
+
+# Scratch / temp SQL
+/tmp/*.sql
+*.sql.tmp
+
+# Branding source files (raw originals — not served)
+public/images/*-original.png

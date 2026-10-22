@@ -43,11 +43,11 @@
       $('noHolding').hidden = true;
       $('holdingSection').hidden = false;
 
-      var certBtn = $('certBtn');
-      if (certBtn) certBtn.href = '/api/certificate/' + h.client_id;
-
       var h = data.holding;
       var config = data.config;
+
+      var certBtn = $('certBtn');
+      if (certBtn && h && h.client_id) certBtn.href = '/api/certificate/' + h.client_id;
 
       $('currentValue').textContent = fmtMoney(data.current_value);
       $('sharesCount').textContent = h.shares_held;

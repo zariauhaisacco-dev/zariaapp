@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Chama invite</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/client/dashboard">Overview</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside id="sidebar" class="sidebar" data-sb-host></aside>
+
+  <main class="main">
+
+    <div id="loadingState" style="padding:40px 24px;text-align:center;color:var(--ink-500)">
+      <div style="font-size:14px">Loading invite…</div>
+    </div>
+
+    <div id="errorState" hidden>
+      <section class="card">
+        <div class="card-body" style="padding:40px 24px;text-align:center">
+          <h3 style="margin:0 0 8px;font-size:16px" id="errorTitle">Invite not valid</h3>
+          <p style="margin:0 0 20px;color:var(--ink-500);font-size:14px" id="errorMessage">—</p>
+          <a href="/client/dashboard" class="btn-sm btn-dark" style="text-decoration:none;display:inline-block">Go to dashboard</a>
+        </div>
+      </section>
+    </div>
+
+    <div id="inviteState" hidden>
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Chama invite</h1>
+          <p class="page-sub">Review and accept to join</p>
+        </div>
+      </div>
+
+      <section class="card" style="margin-bottom:20px">
+        <div class="card-body" style="padding:32px 24px">
+          <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">You've been invited to</div>
+          <h2 style="margin:0 0 4px;font-size:24px;color:var(--ink-900)" id="chamaName">—</h2>
+          <div style="font-size:13px;color:var(--ink-500);margin-bottom:24px">
+            Code: <strong id="chamaCode">—</strong> · Invited by <span id="inviterEmail">—</span>
+          </div>
+
+          <div style="border-top:1px solid var(--line);padding-top:20px;margin-bottom:22px">
+            <div style="display:grid;gap:10px;font-size:13px">
+              <div style="display:flex;justify-content:space-between">
+                <span style="color:var(--ink-500)">Your email</span>
+                <span id="maskedEmail" style="font-weight:600">—</span>
+              </div>
+              <div style="display:flex;justify-content:space-between">
+                <span style="color:var(--ink-500)">Invite expires</span>
+                <span id="expiresAt" style="font-weight:600">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--surface-2);border-radius:8px;padding:16px;font-size:13px;line-height:1.6;color:var(--ink-700);margin-bottom:24px">
+            <strong>What happens when you accept?</strong><br>
+            You'll be added as a member of this chama. You'll see the group balance, your contribution status, and can pay via M-Pesa. You can leave the chama at any time by contacting your admin.
+          </div>
+
+          <div id="actionButtons" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button type="button" class="btn-sm btn-dark" id="acceptBtn" style="min-height:44px;padding:0 24px;font-size:14px">
+              Accept invite
+            </button>
+            <button type="button" class="btn-sm btn-outline" id="declineBtn" style="min-height:44px;padding:0 24px;font-size:14px">
+              Decline
+            </button>
+          </div>
+
+          <p id="actionError" style="display:none;margin-top:16px;color:#cf2632;font-size:13px"></p>
+        </div>
+      </section>
+    </div>
+
+    <div id="successState" hidden>
+      <section class="card">
+        <div class="card-body" style="padding:40px 24px;text-align:center">
+          <div style="font-size:48px;color:var(--pos);margin-bottom:12px">✓</div>
+          <h3 style="margin:0 0 8px;font-size:18px;color:var(--ink-900)" id="successTitle">You've joined!</h3>
+          <p style="margin:0 0 24px;color:var(--ink-500);font-size:14px" id="successMessage">—</p>
+          <a href="/client/chama" class="btn-sm btn-dark" style="text-decoration:none;display:inline-block">View my chama</a>
+        </div>
+      </section>
+    </div>
+
+    <div id="declinedState" hidden>
+      <section class="card">
+        <div class="card-body" style="padding:40px 24px;text-align:center">
+          <h3 style="margin:0 0 8px;font-size:18px;color:var(--ink-900)">Invite declined</h3>
+          <p style="margin:0 0 24px;color:var(--ink-500);font-size:14px">You haven't joined this chama. The admin has been notified.</p>
+          <a href="/client/dashboard" class="btn-sm btn-outline" style="text-decoration:none;display:inline-block">Back to dashboard</a>
+        </div>
+      </section>
+    </div>
+
+  </main>
+</div>
+
+<script src="/js/client-chama-invite.js" defer></script>
+  <script src="/js/sidebar-client.js?v=1" defer></script>
+</body>
+</html>

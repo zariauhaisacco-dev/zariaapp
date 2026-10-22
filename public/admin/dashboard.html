@@ -40,7 +40,7 @@
 
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-  <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar">
     <nav>
       <div class="nav-group">
         <div class="nav-group-label">Overview</div>
@@ -51,12 +51,12 @@
         <a class="nav-item" href="/admin/loans">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v12H4zM4 11h16"/></svg>
           Loans
-          <span class="nav-badge" id="pendingLoansBadge" hidden></span>
+          <span class="nav-badge warn" id="pendingLoansBadge" hidden></span>
         </a>
         <a class="nav-item" href="/admin/requests">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           Requests
-          <span class="nav-badge warn">·</span>
+          <span class="nav-badge warn" id="pendingRequestsBadge" hidden></span>
         </a>
       </div>
 
@@ -67,14 +67,19 @@
           Clients
         </a>
         <a class="nav-item" href="/admin/registrations">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="3.5"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.5"/><path d="m16 11 2 2 4-4"/></svg>
           Registrations
           <span class="nav-badge warn" id="pendingRegsBadge" hidden></span>
+        </a>
+        <a class="nav-item" href="/admin/chamas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M14 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/></svg>
+          Chamas
         </a>
       </div>
 
       <div class="nav-group">
-        <div class="nav-group-label">Money</div>        <a class="nav-item" href="/admin/savings">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item" href="/admin/savings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8h12M6 16h12"/></svg>
           Savings
         </a>
@@ -82,8 +87,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
           Shares
         </a>
-        <a class="nav-item" href="/admin/dividends">Dividends</a>
-
+        <a class="nav-item" href="/admin/dividends">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/></svg>
+          Dividends
+        </a>
         <a class="nav-item" href="/admin/transactions">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>
           Transactions
@@ -91,6 +98,10 @@
         <a class="nav-item" href="/admin/reports">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 3 5-6"/></svg>
           Reports
+        </a>
+        <a class="nav-item" href="/admin/broadcasts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 1 0 8M6 8a6 6 0 0 0 0 8"/><circle cx="12" cy="12" r="2"/></svg>
+          Broadcasts
         </a>
       </div>
 
@@ -101,12 +112,13 @@
           Audit log
         </a>
         <a class="nav-item" href="/admin/settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a22 22 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
           Settings
         </a>
       </div>
     </nav>
   </aside>
+
 
   <main class="main">
 
@@ -172,6 +184,53 @@
         <div class="stat-delta" style="color:var(--ink-500)" id="statDividendsSub">—</div>
       </div>
     </section>
+    <div class="section-head" style="display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 10px">
+      <h2 style="font-size:15px;font-weight:600;color:var(--ink-800);margin:0">Chamas</h2>
+      <span style="font-size:12px;color:var(--ink-500)">Group savings · Members · Payouts</span>
+    </div>
+
+    <section class="stat-strip">
+      <div class="stat">
+        <div class="stat-label">Chama savings</div>
+        <div class="stat-value" id="statChamaBalance"><span class="unit">KES</span>—</div>
+        <div class="stat-delta" style="color:var(--ink-500)" id="statChamaBalanceSub">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Chama members</div>
+        <div class="stat-value" id="statChamaMembers">—</div>
+        <div class="stat-delta" style="color:var(--ink-500)" id="statChamaMembersSub">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Times-money paid</div>
+        <div class="stat-value" id="statChamaPayouts"><span class="unit">KES</span>—</div>
+        <div class="stat-delta" style="color:var(--ink-500)" id="statChamaPayoutsSub">—</div>
+      </div>
+    </section>
+
+    <div class="section-head" style="display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 10px">
+      <h2 style="font-size:15px;font-weight:600;color:var(--ink-800);margin:0">Communication</h2>
+      <span style="font-size:12px;color:var(--ink-500)">SMS · credits · activity</span>
+    </div>
+
+    <section class="stat-strip">
+      <div class="stat">
+        <div class="stat-label">SMS credits</div>
+        <div class="stat-value" id="statSmsCredits">—</div>
+        <div class="stat-delta" style="color:var(--ink-500)" id="statSmsCreditsSub">Ping Africa balance</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">SMS today</div>
+        <div class="stat-value" id="statSmsToday">—</div>
+        <div class="stat-delta" style="color:var(--ink-500)">Since midnight</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">SMS this month</div>
+        <div class="stat-value" id="statSmsMonth">—</div>
+        <div class="stat-delta" style="color:var(--ink-500)">Current month</div>
+      </div>
+    </section>
+
+
 
     <section class="grid-2">
       <div class="card">

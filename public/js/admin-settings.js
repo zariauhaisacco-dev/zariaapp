@@ -507,10 +507,122 @@
     }
   }
 
+
+  // ---------------------------------------------------------------
+  // SMS / Ping Africa settings
+  // ---------------------------------------------------------------
+  async function loadPingSettings() {
+    try {
+      const res = await fetch('/api/admin/settings/ping', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const data = await res.json();
+
+      var en = $('pingEnabled');
+      if (en) en.checked = data.enabled;
+      var sid = $('pingSenderId');
+      if (sid) sid.value = data.sender_id || '';
+      var wa = $('pingWaInstance');
+      if (wa) wa.value = data.whatsapp_instance || '';
+      var ussd = $('pingUssdCode');
+      if (ussd) ussd.value = data.ussd_code || '';
+      var lim = $('pingDailyLimit');
+      if (lim) lim.value = data.daily_sms_limit || 10;
+      var today = $('smsToday');
+      if (today) today.textContent = data.sms_today || 0;
+      var month = $('smsMonth');
+      if (month) month.textContent = data.sms_this_month || 0;
+
+      var cb = $('smsCreditsBadge');
+      if (cb) {
+        if (data.credits_balance != null) {
+          cb.textContent = data.credits_balance.toFixed(1) + ' credits';
+          cb.style.color = data.credits_balance < 5 ? 'var(--neg)' : 'var(--ink-700)';
+        } else {
+          cb.textContent = 'Offline';
+          cb.style.color = 'var(--neg)';
+        }
+      }
+
+      var sb = $('smsStatusBadge');
+      if (sb) {
+        sb.textContent = data.enabled ? 'active' : 'disabled';
+        sb.className = 'pill ' + (data.enabled ? 'pos' : 'neutral');
+      }
+
+      var aap = $('adminAlertPhone');
+      if (aap) aap.value = data.admin_alert_phone || '';
+      var ase = $('adminSmsEnabled');
+      if (ase) ase.checked = data.admin_sms_alerts_enabled !== false;
+    } catch (e) {
+      console.error('[loadPingSettings]', e);
+    }
+  }
+
+  async function savePingSettings() {
+    try {
+      const body = {
+        enabled: $('pingEnabled').checked,
+        sender_id: $('pingSenderId').value.trim() || null,
+        whatsapp_instance: $('pingWaInstance').value.trim() || null,
+        ussd_code: $('pingUssdCode').value.trim() || null,
+        daily_sms_limit: Number($('pingDailyLimit').value) || 10,
+        admin_alert_phone: (document.getElementById('adminAlertPhone') ? document.getElementById('adminAlertPhone').value.trim() : '') || null,
+        admin_sms_alerts_enabled: document.getElementById('adminSmsEnabled') ? document.getElementById('adminSmsEnabled').checked : true,
+      };
+      const res = await fetch('/api/admin/settings/ping', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) { alert('Save failed'); return; }
+      var st = $('pingStatus');
+      if (st) { st.style.display = 'inline'; setTimeout(function () { st.style.display = 'none'; }, 2000); }
+      loadPingSettings();
+    } catch (e) { alert('Network error: ' + e.message); }
+  }
+
+  async function sendTestPing() {
+    var phone = $('testPingPhone').value.trim();
+    if (!phone) return;
+    var res_el = $('testPingResult');
+    res_el.textContent = 'Sending…';
+    res_el.style.color = 'var(--ink-500)';
+    try {
+      const res = await fetch('/api/admin/settings/ping/test', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        res_el.textContent = '✓ Sent · ' + data.credits + ' credits charged';
+        res_el.style.color = 'var(--pos)';
+      } else {
+        res_el.textContent = '✗ ' + (data.error || 'Failed');
+        res_el.style.color = 'var(--neg)';
+      }
+    } catch (e) {
+      res_el.textContent = '✗ ' + e.message;
+      res_el.style.color = 'var(--neg)';
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     loadBranding();
     wireBranding();
     loadEligibility();
+
+    if (document.getElementById('smsCard')) {
+      loadPingSettings();
+      document.getElementById('savePingSettings').addEventListener('click', savePingSettings);
+      document.getElementById('testPingBtn').addEventListener('click', function () {
+        var block = document.getElementById('testPingBlock');
+        block.hidden = !block.hidden;
+      });
+      document.getElementById('sendTestPing').addEventListener('click', sendTestPing);
+    }
     loadDaraja();
     wireDaraja();
   });
@@ -549,6 +661,88 @@
       } catch (e) { alert('Network error'); }
       finally { btn.disabled = false; btn.textContent = 'Save rules'; }
     });
+  }
+
+
+  // ─────────────────────────────────────────────────────────────
+  // Two-factor authentication (admin) — added 2026-10-22
+  // ─────────────────────────────────────────────────────────────
+
+  async function loadTwoFA() {
+    try {
+      var res = await fetch('/api/admin/settings/admin-2fa', { credentials: 'same-origin' });
+      if (!res.ok) return;
+      var data = await res.json();
+      var phoneInput = document.getElementById('twofaPhone');
+      var enabledBox = document.getElementById('twofaEnabled');
+      var status = document.getElementById('twofaStatus');
+      if (!phoneInput || !enabledBox) return;
+
+      phoneInput.value = data.phone || '';
+      enabledBox.checked = !!data.enabled;
+      status.textContent = data.enabled
+        ? '2FA is currently ENABLED. You will need an SMS code on next login.'
+        : '2FA is currently DISABLED.';
+      status.style.color = data.enabled ? 'var(--pos)' : 'var(--ink-500)';
+    } catch (e) {
+      console.error('[twofa load]', e);
+    }
+  }
+
+  function wireTwoFA() {
+    var saveBtn = document.getElementById('save2fa');
+    if (!saveBtn) return;
+
+    saveBtn.addEventListener('click', async function () {
+      var phone = (document.getElementById('twofaPhone').value || '').trim();
+      var enabled = document.getElementById('twofaEnabled').checked;
+      var status = document.getElementById('twofaStatus');
+
+      if (enabled && !phone) {
+        status.textContent = 'Enter your phone number to enable 2FA.';
+        status.style.color = 'var(--neg)';
+        return;
+      }
+      if (enabled && !/^254[17]\d{8}$/.test(phone)) {
+        status.textContent = 'Phone must be 2547XXXXXXXX or 2541XXXXXXXX.';
+        status.style.color = 'var(--neg)';
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      try {
+        var res = await fetch('/api/admin/settings/admin-2fa', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phone || null, enabled: enabled }),
+        });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+          status.textContent = data.error || 'Save failed';
+          status.style.color = 'var(--neg)';
+          return;
+        }
+        status.textContent = data.message || 'Saved.';
+        status.style.color = 'var(--pos)';
+        setTimeout(loadTwoFA, 500);
+      } catch (e) {
+        status.textContent = 'Network error';
+        status.style.color = 'var(--neg)';
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save 2FA settings';
+      }
+    });
+
+    loadTwoFA();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', wireTwoFA);
+  } else {
+    wireTwoFA();
   }
 
 })();

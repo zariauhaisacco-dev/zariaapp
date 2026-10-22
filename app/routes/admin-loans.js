@@ -3,11 +3,14 @@ const Joi = require('joi');
 const db = require('../db');
 const loans = require('../services/loans');
 const audit = require('../services/audit');
+const savings = require('../services/savings');
 const email = require('../services/email');
+const notify = require('../services/notify');
 const push = require('../services/push');
 const shares = require('../services/shares');
 const darajaB2c = require('../services/daraja-b2c');
 const daraja = require('../services/daraja');
+const ping = require('../services/ping');
 const uploads = require('../services/uploads');
 const { authenticate, requireRole } = require('../middleware/auth');
 
@@ -34,19 +37,35 @@ router.get('/loan-products', async (req, res) => {
 
 router.get('/clients', async (req, res) => {
   const q = (req.query.q || '').trim();
-  let where = 'WHERE c.status = "active"';
+  const statusFilter = (req.query.status || 'active').trim();
+
+  // Build WHERE clause based on status filter
+  const whereParts = [];
   const params = [];
+
+  if (statusFilter === 'active') {
+    whereParts.push('c.status = "active"');
+  } else if (statusFilter === 'suspended') {
+    whereParts.push('c.status = "suspended"');
+  } else if (statusFilter === 'closed') {
+    whereParts.push('c.status = "closed"');
+  }
+  // 'all' = no status filter
+
   if (q) {
-    where += ' AND (c.full_name LIKE ? OR c.phone LIKE ?)';
+    whereParts.push('(c.full_name LIKE ? OR c.phone LIKE ?)');
     params.push('%' + q + '%', '%' + q + '%');
   }
+
+  const where = whereParts.length ? 'WHERE ' + whereParts.join(' AND ') : '';
+
   const [rows] = await db.query(
     `SELECT c.id, c.full_name, c.phone, c.national_id, c.status,
             (SELECT COUNT(*) FROM loans l WHERE l.client_id = c.id AND l.status IN ('active','overdue')) AS active_loans
        FROM clients c
        ${where}
        ORDER BY c.full_name ASC
-       LIMIT 100`,
+       LIMIT 200`,
     params
   );
   res.json({ clients: rows });
@@ -181,6 +200,41 @@ router.post('/clients/import', async (req, res) => {
         );
 
         await conn.commit();
+
+        // ─────────────────────────────────────────────
+        // Post-commit side effects (added 2026-10-21)
+        // Auto-open savings, backfill reg fee, send welcome
+        // All best-effort — failures don't undo the client
+        // ─────────────────────────────────────────────
+
+        // Auto-open savings account
+        try {
+          await savings.createAccountForClient(clientResult.insertId);
+        } catch (e) {
+          console.error('[clients-import] savings open failed for client', clientResult.insertId, ':', e.message);
+        }
+
+        // Insert registration fee record
+        try {
+          await db.query(
+            `INSERT INTO registration_fees (client_id, amount, channel, status, notes, created_at)
+             SELECT ?, 500, 'cash', 'paid', 'Admin bulk import', NOW()
+             WHERE NOT EXISTS (SELECT 1 FROM registration_fees WHERE client_id = ?)`,
+            [clientResult.insertId, clientResult.insertId]
+          );
+        } catch (e) {
+          console.error('[clients-import] reg fee insert failed:', e.message);
+        }
+
+        // Send welcome email + SMS (non-blocking)
+        notify.alert({
+          template: 'account_approved',
+          clientId: clientResult.insertId,
+          data: { fullName: fullName, email: email },
+        }).catch(function (e) {
+          console.error('[clients-import] notify failed for client', clientResult.insertId, ':', e.message);
+        });
+
 
         await audit.log({
           actorUserId: req.user.id,
@@ -537,7 +591,7 @@ router.post('/loans/:id/disburse', async (req, res) => {
         // Notify client (non-blocking)
     try {
       const [crows] = await db.query(
-        "SELECT u.email AS user_email, c.full_name FROM clients c " +
+        "SELECT u.email AS user_email, c.full_name, c.id AS client_id FROM clients c " +
         "JOIN users u ON u.id = c.user_id WHERE c.id = (SELECT client_id FROM loans WHERE id = ?)",
         [id]
       );
@@ -549,12 +603,16 @@ router.post('/loans/:id/disburse', async (req, res) => {
           url: "/client/loans/" + id,
           tag: "disbursed-" + id,
         });
-        email.sendLoanDisbursed(crows[0].user_email, {
-          client_name: crows[0].full_name,
-          amount: Number(lrows[0].principal),
-          loan_id: id,
-          mpesa_receipt: value.mpesa_receipt || null,
-        }).catch(function (e) { console.error("[email disbursed]", e.message); });
+        notify.alert({
+          template: 'loan_disbursed',
+          clientId: crows[0].client_id,
+          data: {
+            clientName: crows[0].full_name,
+            amount: Number(lrows[0].principal),
+            loanId: id,
+            mpesaReceipt: value.mpesa_receipt || null,
+          },
+        }).catch(function (e) { console.error("[notify disbursed]", e.message); });
       }
     } catch (e) {
       console.error("[notify disburse]", e.message);
@@ -612,7 +670,7 @@ router.post('/loans/:id/payments', async (req, res) => {
         // Notify client (non-blocking)
     try {
       const [crows] = await db.query(
-        "SELECT u.email AS user_email, c.full_name FROM clients c " +
+        "SELECT u.email AS user_email, c.full_name, c.id AS client_id FROM clients c " +
         "JOIN users u ON u.id = c.user_id WHERE c.id = (SELECT client_id FROM loans WHERE id = ?)",
         [id]
       );
@@ -623,14 +681,18 @@ router.post('/loans/:id/payments', async (req, res) => {
           url: "/client/loans/" + id,
           tag: "payment-" + id,
         });
-        email.sendPaymentReceived(crows[0].user_email, {
-          client_name: crows[0].full_name,
-          amount: value.amount,
-          outstanding: result.outstanding,
-          loan_id: id,
-          mpesa_receipt: value.mpesa_receipt || null,
-          fully_repaid: !!result.fullyRepaid,
-        }).catch(function (e) { console.error("[email payment-received]", e.message); });
+        notify.alert({
+          template: 'payment_received',
+          clientId: crows[0].client_id,
+          data: {
+            clientName: crows[0].full_name,
+            amount: value.amount,
+            outstanding: result.outstanding,
+            loanId: id,
+            mpesaReceipt: value.mpesa_receipt || null,
+            fullyRepaid: !!result.fullyRepaid,
+          },
+        }).catch(function (e) { console.error("[notify payment-received]", e.message); });
       }
     } catch (e) {
       console.error("[notify payment]", e.message);
@@ -675,6 +737,10 @@ router.get('/stats', async (req, res) => {
 
   const [pendingRegRow] = await db.query(
     `SELECT COUNT(*) AS c FROM pending_registrations WHERE status = 'pending'`
+  );
+
+  const [pendingReqRow] = await db.query(
+    `SELECT COUNT(*) AS c FROM loan_requests WHERE status = 'pending'`
   );
 
   // Outstanding vs collected, last 12 weeks (for chart)
@@ -752,14 +818,54 @@ router.get('/stats', async (req, res) => {
        FROM dividend_payouts
       WHERE status = 'credited'`
   );
+  // Chama stats
+  const [chamaRows] = await db.query(
+    `SELECT
+       COUNT(DISTINCT c.id) AS active_chamas,
+       (SELECT COUNT(*) FROM clients cl WHERE cl.chama_id IS NOT NULL AND cl.status = 'active') AS total_members,
+       COALESCE(SUM(csa.balance), 0) AS total_balance
+     FROM chamas c
+     LEFT JOIN chama_savings_accounts csa ON csa.chama_id = c.id
+     WHERE c.status = 'active'`
+  );
 
-  res.json({
+  const [payoutRows] = await db.query(
+    `SELECT COALESCE(SUM(amount), 0) AS total, COUNT(*) AS count
+       FROM chama_savings_transactions
+       WHERE type = 'payout' AND status = 'completed'`
+  );
+
+
+  
+  // SMS stats
+  const [smsToday] = await db.query(
+    "SELECT COUNT(*) AS c FROM sms_logs WHERE status='sent' AND created_at >= CURDATE()"
+  );
+  const [smsMonth] = await db.query(
+    "SELECT COUNT(*) AS c FROM sms_logs WHERE status='sent' AND created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')"
+  );
+  let smsCreditsBalance = null;
+  try {
+    const c = await ping.getCredits();
+    smsCreditsBalance = c.balance;
+  } catch (_) {}
+
+res.json({
     outstanding: Number(outstandingRow[0].total),
     collected_mtd: Number(collectedRow[0].total),
     active_loans: activeRow[0].c,
     overdue_loans: overdueRow[0].c,
     pending_loans: pendingRow[0].c,
-    pending_registrations: pendingRegRow[0].c,
+    pending_loan_requests: pendingReqRow[0].c,
+        sms_today: smsToday[0].c,
+    sms_this_month: smsMonth[0].c,
+    sms_credits_balance: smsCreditsBalance,
+pending_registrations: pendingRegRow[0].c,
+    chama_active: Number(chamaRows[0].active_chamas),
+    chama_members: Number(chamaRows[0].total_members),
+    chama_balance: Number(chamaRows[0].total_balance),
+    chama_payouts_total: Number(payoutRows[0].total),
+    chama_payouts_count: Number(payoutRows[0].count),
     weekly_series: weekly,
     savings_total: Number(savingsRow[0].total),
     savings_accounts: Number(savingsRow[0].accounts),

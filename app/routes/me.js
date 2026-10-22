@@ -8,6 +8,9 @@ const db = require('../db');
 const loans = require('../services/loans');
 const audit = require('../services/audit');
 const savings = require('../services/savings');
+const chama = require('../services/chama');
+const daraja = require('../services/daraja');
+const notify = require('../services/notify');
 const email = require('../services/email');
 const uploads = require('../services/uploads');
 const { authenticate } = require('../middleware/auth');
@@ -59,6 +62,16 @@ const requestLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => 'u:' + (req.user ? req.user.id : req.ip),
   message: { error: 'Too many loan requests. Try again in an hour.' },
+});
+
+// Chama contributions — higher limit, members may contribute multiple times
+const chamaContributeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => 'chama-u:' + (req.user ? req.user.id : req.ip),
+  message: { error: 'Too many contribution attempts. Try again in an hour.' },
 });
 
 const passwordLimiter = rateLimit({
@@ -151,6 +164,152 @@ router.get('/summary', authenticate, clientOnly, async (req, res) => {
       [req.clientId]
     );
 
+
+    // --- Chama data (if in a chama) ---
+    let chamaData = null;
+    const [cl] = await db.query('SELECT chama_id FROM clients WHERE id = ? LIMIT 1', [req.clientId]);
+    if (cl.length && cl[0].chama_id) {
+      const summary = await chama.getChamaSummary(cl[0].chama_id);
+      const myContribution = summary.members.find(function (m) {
+        return Number(m.client_id) === Number(req.clientId);
+      }) || null;
+
+      let tm = null;
+      if (summary.chama.times_money_enabled) {
+        const conn = await db.getConnection();
+        try {
+          const nextRecipientId = await chama.getNextRecipient(conn, summary.chama.id);
+          const payouts = await chama.listPayouts(summary.chama.id, { limit: 20 });
+          const myPayouts = payouts.filter(function (p) { return Number(p.client_id) === Number(req.clientId); });
+          let nextRecipient = null;
+          if (nextRecipientId) {
+            const [nr] = await conn.query('SELECT id, full_name FROM clients WHERE id = ? LIMIT 1', [nextRecipientId]);
+            nextRecipient = nr.length ? nr[0] : null;
+          }
+          const memberIds = summary.members.map(function (m) { return Number(m.client_id); });
+          const myIndex = memberIds.indexOf(Number(req.clientId));
+          tm = {
+            enabled: true,
+            order: summary.chama.times_money_order || 'rotation',
+            my_position: myIndex >= 0 ? myIndex + 1 : null,
+            total_members: memberIds.length,
+            i_received: myPayouts.length > 0,
+            my_total_received: myPayouts.reduce(function (s, p) { return s + Number(p.amount); }, 0),
+            next_recipient: nextRecipient,
+          };
+        } finally { conn.release(); }
+      }
+
+      chamaData = {
+        id: summary.chama.id,
+        name: summary.chama.name,
+        code: summary.chama.code,
+        account_number: summary.savingsAccount ? summary.savingsAccount.account_number : null,
+        group_balance: summary.stats.balance,
+        member_count: summary.stats.memberCount,
+        my_contribution: myContribution ? {
+          period: myContribution.period,
+          amount_due: Number(myContribution.amount_due),
+          amount_paid: Number(myContribution.amount_paid),
+          status: myContribution.contribution_status,
+          last_payment_at: myContribution.last_payment_at,
+        } : null,
+        times_money: tm,
+      };
+    }
+
+    // --- Unified activity feed ---
+    const activityItems = [];
+
+    const [loanTxns] = await db.query(
+      `SELECT t.id, t.type, t.amount, t.mpesa_receipt, t.created_at
+         FROM transactions t
+         JOIN loans l ON l.id = t.loan_id
+        WHERE t.client_id = ?
+        ORDER BY t.id DESC LIMIT 10`,
+      [req.clientId]
+    );
+    loanTxns.forEach(function (t) {
+      activityItems.push({
+        type: 'loan_' + t.type,
+        label: t.type === 'repayment' ? 'Loan repayment' : t.type === 'disbursement' ? 'Loan disbursed' : 'Loan adjustment',
+        amount: Number(t.amount),
+        sign: t.type === 'repayment' ? '+' : '-',
+        ref: t.mpesa_receipt,
+        date: t.created_at,
+        source: 'loan',
+      });
+    });
+
+    if (savings) {
+      const [savTxns] = await db.query(
+        `SELECT id, type, amount, mpesa_receipt, created_at
+           FROM savings_transactions
+          WHERE savings_account_id = ?
+          ORDER BY id DESC LIMIT 10`,
+        [savings.id]
+      );
+      savTxns.forEach(function (t) {
+        activityItems.push({
+          type: 'savings_' + t.type,
+          label: t.type === 'deposit' ? 'Savings deposit' : t.type === 'withdrawal' ? 'Savings withdrawal' : 'Savings interest',
+          amount: Number(t.amount),
+          sign: t.type === 'withdrawal' ? '-' : '+',
+          ref: t.mpesa_receipt,
+          date: t.created_at,
+          source: 'savings',
+        });
+      });
+    }
+
+    if (chamaData) {
+      const [chamaTxns] = await db.query(
+        `SELECT t.id, t.type, t.amount, t.mpesa_receipt, t.created_at
+           FROM chama_savings_transactions t
+          WHERE t.client_id = ?
+          ORDER BY t.id DESC LIMIT 10`,
+        [req.clientId]
+      );
+      chamaTxns.forEach(function (t) {
+        activityItems.push({
+          type: 'chama_' + t.type,
+          label: t.type === 'contribution' ? 'Chama contribution' : t.type === 'payout' ? 'Chama payout' : 'Chama ' + t.type,
+          amount: Number(t.amount),
+          sign: t.type === 'payout' ? '+' : '-',
+          ref: t.mpesa_receipt,
+          date: t.created_at,
+          source: 'chama',
+        });
+      });
+    }
+
+    const [divPayouts] = await db.query(
+      `SELECT id, net_amount, created_at
+         FROM dividend_payouts
+        WHERE client_id = ? AND status = 'credited'
+        ORDER BY id DESC LIMIT 10`,
+      [req.clientId]
+    );
+    divPayouts.forEach(function (d) {
+      activityItems.push({
+        type: 'dividend',
+        label: 'Dividend payout',
+        amount: Number(d.net_amount),
+        sign: '+',
+        ref: null,
+        date: d.created_at,
+        source: 'dividend',
+      });
+    });
+
+    activityItems.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    const unifiedActivity = activityItems.slice(0, 15);
+
+    const totalAssets = (savings ? Number(savings.balance) : 0)
+      + (shares ? Number(shares.shares_held) * shareParValue : 0)
+      + Number(dividendRows[0].net);
+    const totalLiabilities = activeLoan ? (Number(activeLoan.total_repayable) - Number(activeLoan.amount_repaid)) : 0;
+
     res.json({
       client,
       active_loan: activeLoan,
@@ -174,6 +333,13 @@ router.get('/summary', authenticate, clientOnly, async (req, res) => {
         tax: Number(dividendRows[0].tax),
         net: Number(dividendRows[0].net),
         count: Number(dividendRows[0].count),
+      },
+      chama: chamaData,
+      activity: unifiedActivity,
+      totals: {
+        total_assets: totalAssets,
+        total_liabilities: totalLiabilities,
+        net_worth: totalAssets - totalLiabilities,
       },
     });
   } catch (err) {
@@ -273,6 +439,102 @@ const requestSchema = Joi.object({
   purpose: Joi.string().max(500).allow('', null),
 });
 
+// ---------------------------------------------------------------
+// Registration fee — check status + initiate STK
+// ---------------------------------------------------------------
+router.get('/registration-fee', authenticate, clientOnly, async (req, res) => {
+  try {
+    const [feeEnabledRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'registration_fee_enabled'");
+    const [feeAmountRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'registration_fee'");
+    const enabled = feeEnabledRow.length && feeEnabledRow[0].setting_value === '1';
+    const feeAmount = feeAmountRow.length ? Number(feeAmountRow[0].setting_value) : 0;
+
+    const [clientRows] = await db.query(
+      'SELECT registration_fee_paid, registration_fee_amount, registration_fee_paid_at FROM clients WHERE id = ?',
+      [req.clientId]
+    );
+    if (!clientRows.length) return res.status(404).json({ error: 'Client not found' });
+    const cl = clientRows[0];
+
+    let feeRecord = null;
+    if (cl.registration_fee_paid) {
+      const [feeRows] = await db.query(
+        'SELECT id, amount, channel, mpesa_receipt, status, created_at FROM registration_fees WHERE client_id = ? ORDER BY id DESC LIMIT 1',
+        [req.clientId]
+      );
+      feeRecord = feeRows[0] || null;
+    }
+
+    res.json({
+      enabled,
+      amount: enabled ? (Number(cl.registration_fee_amount) || feeAmount) : 0,
+      paid: !!cl.registration_fee_paid,
+      paid_at: cl.registration_fee_paid_at,
+      fee_record: feeRecord,
+    });
+  } catch (err) {
+    console.error('[me/registration-fee]', err.message);
+    res.status(500).json({ error: 'Could not load fee status' });
+  }
+});
+
+router.post('/pay-registration-fee', authenticate, clientOnly, chamaContributeLimiter, async (req, res) => {
+  try {
+    const [feeEnabledRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'registration_fee_enabled'");
+    if (!feeEnabledRow.length || feeEnabledRow[0].setting_value !== '1') {
+      return res.status(409).json({ error: 'Registration fee is not enabled' });
+    }
+
+    const [clientRows] = await db.query(
+      'SELECT id, phone, registration_fee_paid, registration_fee_amount FROM clients WHERE id = ?',
+      [req.clientId]
+    );
+    if (!clientRows.length) return res.status(404).json({ error: 'Client not found' });
+    const client = clientRows[0];
+
+    if (client.registration_fee_paid) return res.status(409).json({ error: 'Fee already paid' });
+
+    const feeAmount = Number(client.registration_fee_amount);
+    if (!(feeAmount > 0)) return res.status(409).json({ error: 'No fee amount set for this client' });
+
+    const phone = String(req.body.phone || client.phone).trim();
+    if (!/^2547\d{8}$/.test(phone)) return res.status(400).json({ error: 'Invalid phone number' });
+
+    const stkResult = await daraja.stkPush({
+      phone,
+      amount: feeAmount,
+      accountReference: 'REGFEE-' + client.id,
+      description: 'Registration fee',
+    });
+
+    await db.query(
+      `INSERT INTO daraja_requests (client_id, registration_fee_client_id, checkout_request_id, merchant_request_id, phone, amount, direction, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'stk_push', 'pending')`,
+      [client.id, client.id, stkResult.checkoutRequestId, stkResult.merchantRequestId, phone, feeAmount]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'client',
+      action: 'registration_fee.stk_initiated',
+      entityType: 'client',
+      entityId: client.id,
+      newValues: { amount: feeAmount, checkout_request_id: stkResult.checkoutRequestId },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    }).catch(function () {});
+
+    res.json({
+      ok: true,
+      checkout_request_id: stkResult.checkoutRequestId,
+      message: 'Check your phone to enter your M-Pesa PIN',
+    });
+  } catch (err) {
+    console.error('[me/pay-registration-fee]', err.message);
+    res.status(500).json({ error: err.message || 'Could not initiate payment' });
+  }
+});
+
 router.post('/loan-requests', authenticate, clientOnly, requestLimiter, async (req, res) => {
   const { error, value } = requestSchema.validate(req.body, { abortEarly: false });
   if (error) {
@@ -370,11 +632,31 @@ router.post('/loan-requests', authenticate, clientOnly, requestLimiter, async (r
         request_id: ins.insertId,
       }).catch(e => console.error('[email admin-new-request]', e.message));
     }
-    email.sendLoanRequestReceived(req.user.email, {
-      client_name: req.user.email,
-      amount: amt,
-      term_months: product.term_months,
-    }).catch(e => console.error('[email request-received]', e.message));
+
+    // SMS alert to admin on new loan request
+    try {
+      const [phoneRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'admin_alert_phone'");
+      const [enabledRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'admin_sms_alerts_enabled'");
+      const adminPhone = phoneRow.length ? phoneRow[0].setting_value : '';
+      const adminSmsEnabled = !enabledRow.length || enabledRow[0].setting_value === '1';
+      if (adminPhone && adminSmsEnabled) {
+        ping.sendSms({
+          to: adminPhone,
+          message: 'ZARIA: New loan request — KES ' + amt.toLocaleString() + ' for ' + product.term_months + ' months. Review: zariauhai.com/admin/requests',
+          template: 'admin_new_loan_request',
+        }).catch(function (e) { console.error('[me admin loan-request sms]', e.message); });
+      }
+    } catch (e) { console.error('[me admin loan-request sms]', e.message); }
+
+    notify.alert({
+      template: 'loan_request_received',
+      clientId: req.clientId,
+      data: {
+        clientName: req.user.email,
+        amount: amt,
+        termMonths: product.term_months,
+      },
+    }).catch(e => console.error('[notify request-received]', e.message));
 
     res.json({ ok: true, request_id: ins.insertId });
   } catch (err) {
@@ -825,6 +1107,321 @@ router.get('/transactions', authenticate, clientOnly, async (req, res) => {
     [req.clientId]
   );
   res.json({ transactions: rows });
+});
+
+// ---------------------------------------------------------------
+// GET /chama — my chama info + this months contribution
+// ---------------------------------------------------------------
+router.get('/chama', authenticate, clientOnly, async (req, res) => {
+  try {
+    const [clientRows] = await db.query(
+      'SELECT chama_id FROM clients WHERE id = ? LIMIT 1',
+      [req.clientId]
+    );
+    if (!clientRows.length || !clientRows[0].chama_id) {
+      return res.json({ chama: null });
+    }
+    const summary = await chama.getChamaSummary(clientRows[0].chama_id);
+    const myContribution = summary.members.find(function (m) {
+      return Number(m.client_id) === Number(req.clientId);
+    }) || null;
+    const myRecentTx = summary.recentTransactions.filter(function (t) {
+      return Number(t.client_id) === Number(req.clientId);
+    }).slice(0, 20);
+    // Times-money data (if enabled)
+    let timesMoney = null;
+    if (summary.chama.times_money_enabled) {
+      const conn = await db.getConnection();
+      try {
+        const nextRecipientId = await chama.getNextRecipient(conn, summary.chama.id);
+        const payouts = await chama.listPayouts(summary.chama.id, { limit: 20 });
+        const myPayouts = payouts.filter(function (p) { return Number(p.client_id) === Number(req.clientId); });
+
+        let nextRecipient = null;
+        if (nextRecipientId) {
+          const [nr] = await conn.query('SELECT id, full_name FROM clients WHERE id = ? LIMIT 1', [nextRecipientId]);
+          nextRecipient = nr.length ? nr[0] : null;
+        }
+
+        const memberIds = summary.members.map(function (m) { return Number(m.client_id); });
+        const myIndex = memberIds.indexOf(Number(req.clientId));
+
+        timesMoney = {
+          enabled: true,
+          order: summary.chama.times_money_order || 'rotation',
+          my_position: myIndex >= 0 ? myIndex + 1 : null,
+          total_members: memberIds.length,
+          i_received: myPayouts.length > 0,
+          my_payouts: myPayouts.slice(0, 5).map(function (p) { return { id: p.id, amount: Number(p.amount), created_at: p.created_at }; }),
+          next_recipient: nextRecipient ? { id: nextRecipient.id, full_name: nextRecipient.full_name } : null,
+          recent_payouts: payouts.slice(0, 10).map(function (p) {
+            return { id: p.id, client_id: p.client_id, client_name: p.client_name, amount: Number(p.amount), channel: p.channel, created_at: p.created_at };
+          }),
+        };
+      } finally {
+        conn.release();
+      }
+    }
+
+
+    res.json({
+      chama: {
+        id: summary.chama.id,
+        name: summary.chama.name,
+        code: summary.chama.code,
+        status: summary.chama.status,
+        monthly_contribution_min: Number(summary.chama.monthly_contribution_min),
+        account_number: summary.savingsAccount ? summary.savingsAccount.account_number : null,
+        balance: summary.stats.balance,
+        member_count: summary.stats.memberCount,
+      },
+      my_contribution: myContribution ? {
+        period: myContribution.period,
+        amount_due: Number(myContribution.amount_due),
+        amount_paid: Number(myContribution.amount_paid),
+        status: myContribution.contribution_status,
+        last_payment_at: myContribution.last_payment_at,
+      } : null,
+      my_recent_transactions: myRecentTx,
+      times_money: timesMoney,
+    });
+  } catch (err) {
+    console.error('[me/chama]', err.message);
+    res.status(500).json({ error: 'Could not load chama' });
+  }
+});
+
+// ---------------------------------------------------------------
+// POST /chama/contribute — initiate STK push for contribution
+// ---------------------------------------------------------------
+const chamaContributeSchema = Joi.object({
+  phone: Joi.string().pattern(/^2547\d{8}$/).optional(),
+  amount: Joi.number().positive().max(1000000).required(),
+});
+
+router.post('/chama/contribute', authenticate, clientOnly, chamaContributeLimiter, async (req, res) => {
+  try {
+    // Registration fee guard
+    const [feeCheck] = await db.query('SELECT registration_fee_paid FROM clients WHERE id = ?', [req.clientId]);
+    if (feeCheck.length && !feeCheck[0].registration_fee_paid) {
+      const [feeRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key='registration_fee'");
+      return res.status(402).json({
+        error: 'Registration fee required',
+        code: 'registration_fee_required',
+        amount: feeRow.length ? Number(feeRow[0].setting_value) : 0,
+      });
+    }
+    const { error, value } = chamaContributeSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: 'Amount is required and must be positive' });
+
+    const [clientRows] = await db.query(
+      'SELECT id, phone, chama_id FROM clients WHERE id = ? LIMIT 1',
+      [req.clientId]
+    );
+    if (!clientRows.length || !clientRows[0].chama_id) {
+      return res.status(409).json({ error: 'You are not in a chama' });
+    }
+    const client = clientRows[0];
+
+    const [acctRows] = await db.query(
+      'SELECT id, account_number FROM chama_savings_accounts WHERE chama_id = ? LIMIT 1',
+      [client.chama_id]
+    );
+    if (!acctRows.length) return res.status(500).json({ error: 'Chama savings account not found' });
+    const acct = acctRows[0];
+
+    const stkResult = await daraja.stkPush({
+      phone: value.phone || client.phone,
+      amount: value.amount,
+      accountReference: acct.account_number,
+      description: 'Chama contribution',
+    });
+
+    await db.query(
+      'INSERT INTO daraja_requests (client_id, chama_savings_account_id, checkout_request_id, merchant_request_id, phone, amount, direction, status) VALUES (?, ?, ?, ?, ?, ?, \'stk_push\', \'pending\')',
+      [client.id, acct.id, stkResult.checkoutRequestId, stkResult.merchantRequestId, value.phone || client.phone, value.amount]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'client',
+      action: 'chama.stk_initiated',
+      entityType: 'chama_savings_account',
+      entityId: acct.id,
+      newValues: { amount: value.amount, checkout_request_id: stkResult.checkoutRequestId },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    }).catch(function () {});
+
+    res.json({
+      ok: true,
+      checkout_request_id: stkResult.checkoutRequestId,
+      message: 'Check your phone to enter your M-Pesa PIN',
+    });
+  } catch (err) {
+    console.error('[me/chama/contribute]', err.message);
+    res.status(500).json({ error: err.message || 'Could not initiate contribution' });
+  }
+});
+
+// ---------------------------------------------------------------
+// GET /chama/contributions — my contribution history
+// ---------------------------------------------------------------
+router.get('/chama/contributions', authenticate, clientOnly, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT cc.id, cc.period, cc.amount_due, cc.amount_paid, cc.status, cc.last_payment_at
+         FROM chama_contributions cc
+         JOIN clients cl ON cl.id = cc.client_id
+        WHERE cc.client_id = ? AND cc.chama_id = cl.chama_id
+        ORDER BY cc.period DESC`,
+      [req.clientId]
+    );
+    res.json({ contributions: rows });
+  } catch (err) {
+    console.error('[me/chama/contributions]', err.message);
+    res.status(500).json({ error: 'Could not load contributions' });
+  }
+});
+
+
+// ---------------------------------------------------------------
+// POST /chama/invite/:token/accept
+// ---------------------------------------------------------------
+router.post('/chama/invite/:token/accept', authenticate, clientOnly, async (req, res) => {
+  try {
+    const token = String(req.params.token || '').trim();
+    if (!token) return res.status(400).json({ error: 'Token required' });
+
+    // Fetch invite + chama
+    const [invRows] = await db.query(
+      `SELECT ci.id, ci.chama_id, ci.client_id, ci.email, ci.status, ci.expires_at,
+              ch.name AS chama_name, ch.status AS chama_status
+         FROM chama_invites ci
+         JOIN chamas ch ON ch.id = ci.chama_id
+        WHERE ci.token = ? LIMIT 1`,
+      [token]
+    );
+    if (!invRows.length) return res.status(404).json({ error: 'Invite not found' });
+    const inv = invRows[0];
+
+    if (inv.status !== 'pending') {
+      return res.status(409).json({ error: 'Invite is no longer pending' });
+    }
+    if (new Date(inv.expires_at).getTime() < Date.now()) {
+      return res.status(410).json({ error: 'Invite has expired' });
+    }
+    if (inv.chama_status !== 'active') {
+      return res.status(409).json({ error: 'Chama is not active' });
+    }
+
+    // Fetch this client + their email
+    const [clientRows] = await db.query(
+      `SELECT c.id, c.status, c.chama_id, u.email
+         FROM clients c
+         JOIN users u ON u.id = c.user_id
+        WHERE c.id = ? LIMIT 1`,
+      [req.clientId]
+    );
+    if (!clientRows.length) return res.status(404).json({ error: 'Client not found' });
+    const client = clientRows[0];
+
+    if (client.status !== 'active') return res.status(403).json({ error: 'Your account is not active' });
+    if (client.chama_id) return res.status(409).json({ error: 'You are already in a chama' });
+
+    // Match by client_id or email
+    const emailMatch = inv.email && client.email && inv.email.toLowerCase() === client.email.toLowerCase();
+    const clientMatch = inv.client_id && Number(inv.client_id) === Number(client.id);
+    if (!emailMatch && !clientMatch) {
+      return res.status(403).json({ error: 'This invite is for a different account' });
+    }
+
+    // Enrol
+    await chama.enrolMember({
+      chamaId: inv.chama_id,
+      clientId: client.id,
+      enrolledBy: null,
+    });
+
+    // Mark invite accepted
+    await db.query(
+      "UPDATE chama_invites SET status='accepted', responded_at=NOW() WHERE id = ?",
+      [inv.id]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'client',
+      action: 'chama.invite_accepted',
+      entityType: 'chama_invite',
+      entityId: inv.id,
+      newValues: { chama_id: inv.chama_id, client_id: client.id },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    }).catch(function () {});
+
+    res.json({ ok: true, chama_id: inv.chama_id, chama_name: inv.chama_name });
+  } catch (err) {
+    console.error('[me/chama/invite/accept]', err.message);
+    res.status(500).json({ error: err.message || 'Could not accept invite' });
+  }
+});
+
+// ---------------------------------------------------------------
+// POST /chama/invite/:token/decline
+// ---------------------------------------------------------------
+router.post('/chama/invite/:token/decline', authenticate, clientOnly, async (req, res) => {
+  try {
+    const token = String(req.params.token || '').trim();
+    if (!token) return res.status(400).json({ error: 'Token required' });
+
+    const [invRows] = await db.query(
+      `SELECT ci.id, ci.chama_id, ci.client_id, ci.email, ci.status
+         FROM chama_invites ci
+        WHERE ci.token = ? LIMIT 1`,
+      [token]
+    );
+    if (!invRows.length) return res.status(404).json({ error: 'Invite not found' });
+    const inv = invRows[0];
+
+    if (inv.status !== 'pending') {
+      return res.status(409).json({ error: 'Invite is no longer pending' });
+    }
+
+    const [clientRows] = await db.query(
+      `SELECT c.id, u.email FROM clients c JOIN users u ON u.id = c.user_id WHERE c.id = ? LIMIT 1`,
+      [req.clientId]
+    );
+    if (!clientRows.length) return res.status(404).json({ error: 'Client not found' });
+    const client = clientRows[0];
+
+    const emailMatch = inv.email && client.email && inv.email.toLowerCase() === client.email.toLowerCase();
+    const clientMatch = inv.client_id && Number(inv.client_id) === Number(client.id);
+    if (!emailMatch && !clientMatch) {
+      return res.status(403).json({ error: 'This invite is for a different account' });
+    }
+
+    await db.query(
+      "UPDATE chama_invites SET status='declined', responded_at=NOW() WHERE id = ?",
+      [inv.id]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'client',
+      action: 'chama.invite_declined',
+      entityType: 'chama_invite',
+      entityId: inv.id,
+      newValues: { chama_id: inv.chama_id, client_id: client.id },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    }).catch(function () {});
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[me/chama/invite/decline]', err.message);
+    res.status(500).json({ error: err.message || 'Could not decline invite' });
+  }
 });
 
 module.exports = router;

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Broadcasts</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/savings">Savings</a>
+        <a class="nav-item" href="/admin/shares">Shares</a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Members</div>
+        <a class="nav-item" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+        <a class="nav-item" href="/admin/chamas">Chamas</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Operations</div>
+        <a class="nav-item" href="/admin/transactions">Transactions</a>
+        <a class="nav-item" href="/admin/reports">Reports</a>
+        <a class="nav-item active" href="/admin/broadcasts">Broadcasts</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Broadcasts</h1>
+        <p class="page-sub">Send a message to multiple clients at once</p>
+      </div>
+    </div>
+
+    <div id="alert" class="alert" hidden></div>
+
+    <!-- Send form -->
+    <section class="card" style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">New broadcast</h2>
+          <p class="card-sub">Sends email and/or push to clients matching the audience filter</p>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <div class="field" style="margin-bottom:14px">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" maxlength="255" placeholder="e.g. Dividend payout for 2026 Q3">
+        </div>
+
+        <div class="field" style="margin-bottom:14px">
+          <label for="body">Message</label>
+          <textarea id="body" rows="6" maxlength="5000" placeholder="Write your message here. Plain text only." style="width:100%;padding:10px 12px;font-family:inherit;font-size:14px;border:1px solid var(--line-1);border-radius:6px;resize:vertical"></textarea>
+          <p class="muted small" style="margin:4px 0 0;font-size:11px">
+            <span id="charCount">0</span> / 5000 characters
+          </p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div class="field" style="grid-column:1 / -1">
+            <label>Delivery channels</label>
+            <div class="channel-picker" id="channelPicker">
+              <button type="button" class="channel-card" data-channel="email">
+                <span class="channel-icon">✉</span>
+                <span class="channel-name">Email</span>
+                <span class="channel-count" id="countEmail">—</span>
+              </button>
+              <button type="button" class="channel-card" data-channel="push">
+                <span class="channel-icon">🔔</span>
+                <span class="channel-name">Push</span>
+                <span class="channel-count" id="countPush">—</span>
+              </button>
+              <button type="button" class="channel-card" data-channel="both">
+                <span class="channel-icon">✉🔔</span>
+                <span class="channel-name">Both</span>
+                <span class="channel-count" id="countBoth">—</span>
+              </button>
+              <button type="button" class="channel-card" data-channel="sms">
+                <span class="channel-icon">📱</span>
+                <span class="channel-name">SMS</span>
+                <span class="channel-count" id="countSms">—</span>
+              </button>
+              <button type="button" class="channel-card" data-channel="all">
+                <span class="channel-icon">✉🔔📱</span>
+                <span class="channel-name">All channels</span>
+                <span class="channel-count" id="countAll">—</span>
+              </button>
+            </div>
+            <p class="muted small" style="margin:6px 0 0;font-size:11px">
+              Each card shows how many clients in the current audience can be reached.
+              Channels with 0 clients are disabled. SMS costs 1 credit per client.
+            </p>
+          </div>
+
+          <div class="field">
+            <label for="audience">Audience</label>
+            <select id="audience" style="width:100%;padding:8px 12px;font-size:14px;border:1px solid var(--line-1);border-radius:6px">
+              <option value="active">Active clients</option>
+              <option value="all">All clients</option>
+              <option value="suspended">Suspended clients</option>
+            </select>
+            <p class="muted small" id="previewText" style="margin:6px 0 0;font-size:12px;color:var(--ink-500)">
+              Click "Preview" to see how many clients will receive this.
+            </p>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <button type="button" class="btn-sm btn-outline" id="previewBtn">Preview</button>
+          <button type="button" class="btn-sm btn-outline" id="testSelfBtn">Send to myself</button>
+          <button type="button" class="btn-sm btn-dark" id="sendBtn" disabled>Send broadcast</button>
+          <span id="statusText" style="font-size:12.5px;display:none"></span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Delivery status panel (shown after send) -->
+    <section class="card" id="statusCard" hidden style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Delivery status</h2>
+          <p class="card-sub" id="statusSub">—</p>
+        </div>
+        <button type="button" class="btn-sm btn-outline" id="statusCloseBtn">Close</button>
+      </div>
+      <div class="card-body" id="statusBody"></div>
+    </section>
+
+    <!-- History -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Recent broadcasts</h2>
+          <p class="card-sub">Last 50 broadcasts</p>
+        </div>
+      </div>
+      <div id="historyWrap" style="padding:16px">
+        <div class="empty" style="padding:32px;text-align:center;color:var(--ink-500)">Loading…</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/admin-broadcasts.js" defer></script>
+</body>
+</html>

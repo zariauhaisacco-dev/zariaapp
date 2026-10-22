@@ -65,6 +65,80 @@ router.get('/interest-summary', async (req, res, next) => {
   }
 });
 
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/admin/savings/monthly
+// Year-by-year, month-by-month aggregate across ALL clients
+// Added: 2026-10-21
+// ─────────────────────────────────────────────────────────────
+router.get('/monthly', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         YEAR(st.created_at)  AS yr,
+         MONTH(st.created_at) AS mo,
+         SUM(st.amount)       AS total,
+         COUNT(*)             AS txn_count,
+         COUNT(DISTINCT sa.client_id) AS client_count
+       FROM savings_transactions st
+       JOIN savings_accounts sa ON sa.id = st.savings_account_id
+       WHERE st.status = 'completed'
+       GROUP BY yr, mo
+       ORDER BY yr DESC, mo ASC`
+    );
+
+    const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const byYear = {};
+
+    rows.forEach(function (r) {
+      var y = Number(r.yr);
+      var m = Number(r.mo);
+      if (!byYear[y]) {
+        byYear[y] = {
+          year: y,
+          total: 0,
+          txn_count: 0,
+          client_count: 0,
+          months: Array.from({ length: 12 }, function (_, i) {
+            return { month: i + 1, label: MONTH_LABELS[i], total: 0, txn_count: 0, client_count: 0 };
+          }),
+        };
+      }
+      var bucket = byYear[y].months[m - 1];
+      bucket.total = Number(r.total);
+      bucket.txn_count = Number(r.txn_count);
+      bucket.client_count = Number(r.client_count);
+      byYear[y].total += Number(r.total);
+      byYear[y].txn_count += Number(r.txn_count);
+      if (Number(r.client_count) > byYear[y].client_count) {
+        byYear[y].client_count = Number(r.client_count);
+      }
+    });
+
+    var currentYear = new Date().getFullYear();
+    [currentYear, currentYear - 1].forEach(function (y) {
+      if (!byYear[y]) {
+        byYear[y] = {
+          year: y,
+          total: 0,
+          txn_count: 0,
+          client_count: 0,
+          months: Array.from({ length: 12 }, function (_, i) {
+            return { month: i + 1, label: MONTH_LABELS[i], total: 0, txn_count: 0, client_count: 0 };
+          }),
+        };
+      }
+    });
+
+    var years = Object.keys(byYear).map(Number).sort(function (a, b) { return b - a; });
+    var out = years.map(function (y) { return byYear[y]; });
+
+    res.json({ years: out });
+  } catch (err) {
+    console.error('[admin savings monthly]', err.message);
+    res.status(500).json({ error: 'Could not load monthly savings' });
+  }
+});
 router.get('/accounts/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);

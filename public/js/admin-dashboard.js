@@ -88,6 +88,59 @@
       var rbadge = $('pendingRegsBadge');
       if (rbadge) { rbadge.textContent = s.pending_registrations; rbadge.hidden = false; }
     }
+    if (s.pending_loan_requests > 0) {
+      var reqbadge = $("pendingRequestsBadge");
+      if (reqbadge) { reqbadge.textContent = s.pending_loan_requests; reqbadge.hidden = false; }
+    }
+
+    // Chama stats
+    var cb = $('statChamaBalance');
+    if (cb) {
+      cb.innerHTML = '<span class="unit">KES</span>' + fmtMoney(s.chama_balance || 0);
+      var cbSub = $('statChamaBalanceSub');
+      if (cbSub) {
+        var nActive = s.chama_active || 0;
+        cbSub.textContent = nActive + ' active chama' + (nActive === 1 ? '' : 's');
+      }
+    }
+    var cm = $('statChamaMembers');
+    if (cm) {
+      cm.textContent = s.chama_members || 0;
+      var cmSub = $('statChamaMembersSub');
+      if (cmSub) {
+        var nA = s.chama_active || 0;
+        cmSub.textContent = 'Across ' + nA + ' chama' + (nA === 1 ? '' : 's');
+      }
+    }
+    var cp = $('statChamaPayouts');
+    if (cp) {
+      cp.innerHTML = '<span class="unit">KES</span>' + fmtMoney(s.chama_payouts_total || 0);
+      var cpSub = $('statChamaPayoutsSub');
+      if (cpSub) {
+        var nP = s.chama_payouts_count || 0;
+        cpSub.textContent = nP + ' payout' + (nP === 1 ? '' : 's') + ' · all time';
+      }
+    }
+
+    // SMS stats
+    var sc = $('statSmsCredits');
+    if (sc) {
+      var bal = s.sms_credits_balance;
+      if (bal != null) {
+        sc.textContent = Number(bal).toFixed(1);
+        var scSub = $('statSmsCreditsSub');
+        if (scSub) {
+          scSub.textContent = bal < 5 ? '⚠️ Low — top up soon' : 'Ping Africa balance';
+          scSub.style.color = bal < 5 ? 'var(--neg)' : 'var(--ink-500)';
+        }
+      } else {
+        sc.textContent = '—';
+        var scSub2 = $('statSmsCreditsSub');
+        if (scSub2) { scSub2.textContent = 'Ping Africa offline'; scSub2.style.color = 'var(--neg)'; }
+      }
+    }
+    if ($('statSmsToday')) $('statSmsToday').textContent = s.sms_today || 0;
+    if ($('statSmsMonth')) $('statSmsMonth').textContent = s.sms_this_month || 0;
 
     return s;
   }

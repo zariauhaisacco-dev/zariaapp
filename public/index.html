@@ -2,148 +2,195 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0B1F3A">
-  <meta name="description" content="Zaria Uhai SACCO — inclusive savings, affordable credit, and member-centered support for Kenyan households.">
-  <title>Zaria Uhai SACCO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#082b52">
+  <meta name="description" content="Zaria Uhai SACCO — Save together. Grow together.">
+  <title>Zaria Uhai SACCO | Member Login</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/favicon/32" sizes="32x32">
   <link rel="icon" href="/favicon/192" sizes="192x192">
   <link rel="apple-touch-icon" href="/favicon/180">
   <link rel="stylesheet" href="/css/landing.css">
 </head>
-<body class="landing">
 
-<div class="land-shell">
+<body>
+  <div class="landing-shell">
 
-  <!-- ===== NAV ===== -->
-  <nav class="land-nav">
-    <a href="/" class="land-brand">
-      <span class="land-brand-mark" id="brandLogo"><img src="/api/branding/logo" alt=""></span>
-      <span class="land-brand-word" id="brandName">Zaria Uhai SACCO</span>
-    </a>
-    <div class="land-nav-actions">
-      <button type="button" class="land-nav-cta" id="installNavBtn" hidden>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
-          <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/>
+    <header class="land-nav">
+      <a class="land-brand-lockup" href="/" aria-label="Zaria Uhai SACCO home">
+        <span class="brand-symbol" aria-hidden="true" id="brandSymbol">
+          <img src="/api/branding/logo" alt="">
+        </span>
+        <span>
+          <span id="brandName" class="land-nav-name">Zaria Uhai SACCO</span>
+          <span class="nav-tagline" id="navTagline">SAVE TOGETHER. GROW TOGETHER.</span>
+        </span>
+      </a>
+
+      <button id="installNavBtn" class="land-install-btn" type="button" hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12"/>
+          <path d="M7 10l5 5 5-5"/>
+          <path d="M4 19h16"/>
         </svg>
-        Install app
+        <span>Install App</span>
       </button>
-    </div>
-  </nav>
+    </header>
 
-  <!-- ===== HERO — split: brand left, login right ===== -->
-  <section class="land-hero">
-
-    <!-- LEFT: brand identity -->
-    <div class="land-copy">
-      <div class="land-logo-hero">
-        <img src="/api/branding/logo" alt="" id="heroLogo">
-      </div>
-
-      <h1 class="land-h1" id="heroName">Zaria Uhai SACCO</h1>
-
-      <p class="land-tagline" id="heroTagline">Save together. Grow together.</p>
-
-      <p class="land-mission" id="heroMission">
-        Inclusive savings, affordable credit, and member-centered support.
-      </p>
-
-      <div class="land-values" id="heroValues">
-        <span class="land-value-pill">Presence</span>
-        <span class="land-value-pill">Compassion</span>
-        <span class="land-value-pill">Liberation</span>
-        <span class="land-value-pill">Active Participation</span>
-      </div>
-    </div>
-
-    <!-- RIGHT: login -->
-    <div class="land-login-wrap" id="login">
-      <div class="land-login">
-        <div class="land-login-head">
-          <h2>Member sign in</h2>
-          <p>Access your savings, loans, and shares.</p>
-        </div>
-
-        <form id="loginForm" autocomplete="on" novalidate>
-          <div class="land-field">
-            <label for="email">Email address</label>
-            <input type="email" id="email" name="email"
-                   autocomplete="username" inputmode="email" required
-                   spellcheck="false" autocapitalize="none"
-                   placeholder="you@example.com">
-          </div>
-
-          <div class="land-field">
-            <label for="password">Password</label>
-            <div class="land-field-row">
-              <input type="password" id="password" name="password"
-                     autocomplete="current-password" required minlength="8"
-                     placeholder="••••••••">
-              <button type="button" class="land-password-toggle" id="togglePassword" aria-label="Show password">
-                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a18.45 18.45 0 0 1 4.06-5.06"/>
-                  <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19"/>
-                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
-                  <path d="M1 1l22 22"/>
-                </svg>
-              </button>
+    <main class="land-main">
+      <section class="land-copy" aria-labelledby="heroName">
+        <div class="land-copy-inner">
+          <div class="land-hero-brand">
+            <div class="hero-symbol" aria-hidden="true" id="heroSymbol">
+              <img src="/api/branding/logo" alt="">
+            </div>
+            <div>
+              <p class="land-eyebrow">Your financial community</p>
+              <h1 id="heroName" class="land-h1">Zaria Uhai SACCO</h1>
+              <p id="heroTagline" class="land-tagline">SAVE TOGETHER. GROW TOGETHER.</p>
             </div>
           </div>
 
-          <div class="form-error land-login-error" id="formError" role="alert" hidden></div>
+          <p id="heroMission" class="land-mission">
+            Empowering our members through secure savings, affordable credit and sustainable financial solutions for a brighter future.
+          </p>
 
-          <button type="submit" class="land-login-submit" id="submitBtn">
-            <span class="btn-label">
-              Sign in
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </span>
-            <span class="btn-spinner" hidden></span>
-          </button>
+          <div class="land-values" aria-label="Our values">
+            <span class="land-value"><span class="land-value-dot"></span>Presence</span>
+            <span class="land-value"><span class="land-value-dot"></span>Compassion</span>
+            <span class="land-value"><span class="land-value-dot"></span>Liberation</span>
+            <span class="land-value"><span class="land-value-dot"></span>Active Participation</span>
+          </div>
+
+          <div class="land-trust-list" aria-label="Service highlights">
+            <span class="land-trust-chip" data-color="green">✓ &nbsp; Licensed SACCO</span>
+            <span class="land-trust-chip" data-color="blue">✓ &nbsp; Data Protection</span>
+            <span class="land-trust-chip" data-color="red">✓ &nbsp; Powered by M-Pesa</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="land-login-side" aria-labelledby="loginTitle">
+        <div class="land-login-card">
+          <div class="land-login-heading">
+            <div class="land-login-mark" aria-hidden="true" id="loginMark">
+              <img src="/api/branding/logo" alt="">
+            </div>
+            <h2 id="loginTitle">Member Sign In</h2>
+            <p class="land-login-subtitle">Access your savings, loans and more.</p>
+          </div>
+
+          <form id="loginForm" class="land-login-form" novalidate>
+            <div class="land-field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email"
+                     autocomplete="username" inputmode="email"
+                     spellcheck="false" autocapitalize="none"
+                     placeholder="Enter your email address" required>
+            </div>
+
+            <div class="land-field">
+              <label for="password">Password</label>
+              <div class="land-password-wrap">
+                <input id="password" name="password" type="password"
+                       autocomplete="current-password" minlength="8"
+                       placeholder="Enter your password" required>
+                <button id="togglePassword" class="land-password-toggle"
+                        type="button" aria-label="Show password"
+                        aria-pressed="false">◉</button>
+              </div>
+            </div>
+
+            <p id="formError" class="land-form-error" role="alert" hidden></p>
+
+            <button id="submitBtn" class="land-submit-btn" type="submit">
+              <span class="btn-label">Sign In</span>
+              <span aria-hidden="true">→</span>
+              <span class="btn-spinner" hidden></span>
+            </button>
+          </form>
+
+          <!-- OTP verification panel (hidden until login returns requires2fa) -->
+          <div id="otpPanel" hidden>
+            <p style="font-size:14px;margin:0 0 16px;color:var(--ink-700);text-align:center">
+              We sent a 6-digit code to <strong id="otpMasked"></strong>
+            </p>
+
+            <form id="otpForm" novalidate>
+              <div class="land-field">
+                <label for="otpCode">Verification code</label>
+                <input id="otpCode" name="otpCode" type="text"
+                       inputmode="numeric" pattern="[0-9]*" maxlength="6"
+                       autocomplete="one-time-code"
+                       placeholder="123456"
+                       style="text-align:center;font-size:24px;letter-spacing:8px;font-family:var(--font-mono)">
+              </div>
+
+              <p id="otpError" class="land-form-error" role="alert" hidden></p>
+
+              <button id="otpSubmitBtn" class="land-submit-btn" type="submit">
+                <span class="btn-label">Verify</span>
+                <span aria-hidden="true">→</span>
+                <span class="btn-spinner" hidden></span>
+              </button>
+            </form>
+
+            <div class="land-login-links" style="margin-top:16px">
+              <button type="button" id="resendSmsBtn" class="link-btn" style="background:none;border:none;color:var(--ink-600);cursor:pointer;font:inherit;font-size:13px;text-decoration:underline;padding:0">
+                Didn't receive? Resend SMS
+              </button>
+              <button type="button" id="resendEmailBtn" class="link-btn" style="background:none;border:none;color:var(--ink-600);cursor:pointer;font:inherit;font-size:13px;text-decoration:underline;padding:0">
+                Send to email
+              </button>
+              <button type="button" id="otpCancelBtn" class="link-btn" style="background:none;border:none;color:var(--ink-500);cursor:pointer;font:inherit;font-size:13px;text-decoration:underline;padding:0">
+                ← Back to login
+              </button>
+            </div>
+
+            <p id="otpStatus" style="font-size:12px;color:var(--ink-500);text-align:center;margin:12px 0 0"></p>
+          </div>
 
           <div class="land-login-links">
             <a href="/forgot-password">Forgot password?</a>
-            <a href="/signup">New here? <strong>Join the SACCO →</strong></a>
+            <a href="/signup">Join Now →</a>
           </div>
-        </form>
+
+          <p class="land-login-note">
+            <span class="land-secure-dot"></span>
+            Your information is protected
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="land-footer">
+      <div class="land-foot-contact">
+        <span class="land-foot-label">Talk to us</span>
+        <a id="footPhone" href="tel:0746138896">0746 138 896</a>
+        <span class="land-foot-separator">•</span>
+        <a id="footWhatsapp" href="https://wa.me/254746138896">WhatsApp</a>
+        <span class="land-foot-separator">•</span>
+        <a id="footEmailLink" href="mailto:info@zariauhai.com">
+          <span id="footEmail">info@zariauhai.com</span>
+        </a>
       </div>
-    </div>
 
-  </section>
+      <div class="land-foot-small">
+        <span id="footLocation">Nairobi, Kenya</span>
+        <span class="land-foot-separator">•</span>
+        <span id="footHours">Mon – Sat</span>
+        <span class="land-foot-separator">•</span>
+        <span>© <span id="year">2026</span> <span id="footName">Zaria Uhai SACCO</span></span>
+        <a href="/terms">Terms &amp; Conditions</a>
+        <a href="/privacy">Privacy Policy</a>
+      </div>
+    </footer>
 
-  <!-- ===== FOOTER ===== -->
-  <footer class="land-foot" id="contact">
-    <div class="land-foot-line" id="footContact">
-      <strong>Talk to us</strong>
-      <span id="footPhone">0746 138 896</span>
-      <span class="land-foot-sep">·</span>
-      <span>WhatsApp <span id="footWhatsapp">254746138896</span></span>
-      <span class="land-foot-sep">·</span>
-      <a href="mailto:info@zariauhai.com" id="footEmailLink"><span id="footEmail">info@zariauhai.com</span></a>
-    </div>
-    <div class="land-foot-line">
-      <span id="footLocation">Nairobi, Kenya</span>
-      <span class="land-foot-sep">·</span>
-      <span id="footHours">Mon–Sat, 8:00–18:00 EAT</span>
-    </div>
-    <div class="land-foot-line land-foot-small">
-      © <span id="year"></span> <span id="footName">Zaria Uhai SACCO</span>
-      <span class="land-foot-sep">·</span>
-      <a href="/terms">Terms</a>
-      <span class="land-foot-sep">·</span>
-      <a href="/privacy">Privacy</a>
-    </div>
-  </footer>
+  </div>
 
-</div>
-
-<script src="/js/landing-branding.js" defer></script>
-<script src="/js/login.js" defer></script>
-<script src="/js/landing-install.js" defer></script>
-<script src="/js/landing-inline.js" defer></script>
+  <script src="/js/landing-branding.js" defer></script>
+  <script src="/js/login.js" defer></script>
+  <script src="/js/landing-install.js" defer></script>
+  <script src="/js/landing-inline.js" defer></script>
 </body>
 </html>

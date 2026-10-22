@@ -13,6 +13,7 @@ const pages = require('./app/pages');
 // Routes
 const authRoutes = require('./app/routes/auth');
 const signupRoutes = require('./app/routes/signup');
+const chamaInvitesPublic = require('./app/routes/chama-invites-public');
 const adminRegistrations = require('./app/routes/admin-registrations');
 const adminLoanRequests = require('./app/routes/admin-loan-requests');
 const adminTransactions = require('./app/routes/admin-transactions');
@@ -22,6 +23,7 @@ const adminSettings = require('./app/routes/admin-settings');
 const adminSavings = require('./app/routes/admin-savings');
 const adminShares = require('./app/routes/admin-shares');
 const adminSearch = require('./app/routes/admin-search');
+const adminBroadcasts = require('./app/routes/admin-broadcasts');
 const adminNotifications = require('./app/routes/admin-notifications');
 const adminLoans = require('./app/routes/admin-loans');
 const meRoutes = require('./app/routes/me');
@@ -31,6 +33,7 @@ const adminDividends = require('./app/routes/admin-dividends');
 const meDividends = require('./app/routes/me-dividends');
 const pdfRoutes = require('./app/routes/pdf');
 const brandingRoutes = require('./app/routes/branding');
+const ussdRoutes = require('./app/routes/ussd');
 const darajaRoutes = require('./app/routes/daraja');
 const pushRoutes = require('./app/routes/push');
 
@@ -89,9 +92,9 @@ app.get('/health', async (req, res) => {
 // ============================================================
 const ALLOWED_SIZES = new Set([16, 24, 32, 48, 64, 96, 128, 180, 192, 256, 384, 512]);
 
-app.get('/favicon.ico', (req, res) => {
+app.get('/favicon.ico', async (req, res) => {
   try {
-    const png = getIcon(32);
+    const png = await getIcon(32);
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', 'public, max-age=86400, immutable');
     res.send(png);
@@ -101,13 +104,13 @@ app.get('/favicon.ico', (req, res) => {
   }
 });
 
-app.get('/favicon/:size', (req, res) => {
+app.get('/favicon/:size', async (req, res) => {
   const size = parseInt(req.params.size, 10);
   if (!Number.isInteger(size) || !ALLOWED_SIZES.has(size)) {
     return res.status(400).json({ error: 'Invalid size' });
   }
   try {
-    const png = getIcon(size);
+    const png = await getIcon(size);
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', 'public, max-age=86400, immutable');
     res.send(png);
@@ -120,10 +123,12 @@ app.get('/favicon/:size', (req, res) => {
 // ============================================================
 // API routes
 // ============================================================
+app.use('/api', ussdRoutes);
 app.use('/api/daraja', darajaRoutes);
 app.use('/api/branding', brandingRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', signupRoutes);
+app.use('/api/chama-invites', chamaInvitesPublic);
 
 app.use('/api/admin/registrations', adminRegistrations);
 app.use('/api/admin/loan-requests', adminLoanRequests);
@@ -134,8 +139,10 @@ app.use('/api/admin/settings', adminSettings);
 app.use('/api/admin/savings', adminSavings);
 app.use('/api/admin/shares', adminShares);
 app.use('/api/admin/dividends', adminDividends);
+app.use('/api/admin/broadcasts', adminBroadcasts);
 app.use('/api/admin/search', adminSearch);
 app.use('/api/admin/notifications', adminNotifications);
+app.use('/api/admin/chamas', require('./app/routes/admin-chama'));
 app.use('/api/admin', adminLoans);
 
 app.use('/api/me', meRoutes);
@@ -156,6 +163,12 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // ============================================================
 // Admin pages
+app.get('/admin/chamas', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'chamas.html'));
+});
+app.get('/admin/chamas/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'chama-detail.html'));
+});
 // ============================================================
 app.get('/admin/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'dashboard.html'));
@@ -192,6 +205,10 @@ app.get('/admin/audit', (req, res) => {
 });
 app.get('/admin/settings', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'settings.html'));
+});
+
+app.get('/admin/broadcasts', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'broadcasts.html'));
 });
 app.get('/admin/savings', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'savings.html'));
@@ -233,6 +250,12 @@ app.get('/client/request', (req, res) => {
 });
 app.get('/client/savings', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'client', 'savings.html'));
+});
+app.get('/client/chama/invite', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'client', 'chama-invite.html'));
+});
+app.get('/client/chama', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'client', 'chama.html'));
 });
 app.get('/client/shares', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'client', 'shares.html'));

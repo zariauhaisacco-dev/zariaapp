@@ -10,6 +10,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
 const db = require('../db');
 const email = require('../services/email');
+const notify = require('../services/notify');
 const push = require('../services/push');
 
 const STAGES = [3, 1, 0]; // days until due
@@ -44,13 +45,18 @@ const STAGES = [3, 1, 0]; // days until due
         const outstanding = Number(r.total_repayable) - Number(r.amount_repaid);
 
         try {
-          await email.sendPaymentReminder(r.client_email, {
-            client_name: r.client_name,
-            amount_due: amountRemaining,
-            due_date: r.due_date,
-            days_until: stage,
-            loan_id: r.loan_id,
-            outstanding: outstanding,
+          await notify.alert({
+            template: 'payment_reminder',
+            clientId: r.client_id,
+            data: {
+              clientName: r.client_name,
+              amountDue: amountRemaining,
+              dueDate: r.due_date,
+              daysUntil: stage,
+              loanId: r.loan_id,
+              outstanding: outstanding,
+              email: r.client_email,
+            },
           });
 
           // Push notification to the client's devices (fire-and-forget)

@@ -1,10 +1,30 @@
+const path = require('path');
+const fs = require('fs');
+const sharp = require('sharp');
 const { Resvg } = require('@resvg/resvg-js');
 
 // ============================================================
-// The Zaria icon — a single SVG source of truth.
-// Navy rounded square + amber "Z" + subtle inner glow.
-// Change the SVG below and every size updates everywhere.
+// Zaria PWA / favicon icon service.
+//
+// Source of truth (in priority order):
+//   1. data/uploads/brand-hero.png      (admin-uploaded square logo)
+//   2. public/images/brand-hero.png     (bundled square logo — 900x900)
+//   3. legacy SVG (inline)              (fallback if neither PNG exists)
+//
+// Cache key includes ICON_VERSION so bumping .env invalidates the
+// in-memory cache without a Passenger restart.
 // ============================================================
+
+const ROOT = path.join(__dirname, '..', '..');
+const UPLOADS_LOGO = path.join(ROOT, 'data', 'uploads', 'brand-hero.png');
+const PUBLIC_LOGO  = path.join(ROOT, 'public', 'logo.png');
+
+function resolveBrandPng() {
+  if (fs.existsSync(UPLOADS_LOGO)) return UPLOADS_LOGO;
+  if (fs.existsSync(PUBLIC_LOGO))  return PUBLIC_LOGO;
+  return null;
+}
+
 const ICON_SVG = (size) => `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="${size}" height="${size}">
   <defs>
@@ -17,57 +37,58 @@ const ICON_SVG = (size) => `
       <stop offset="60%" stop-color="#F5B301" stop-opacity="0"/>
     </radialGradient>
   </defs>
-
-  <!-- Rounded square background -->
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
   <rect width="512" height="512" rx="112" fill="url(#glow)"/>
-
-  <!-- The Z mark — geometric, drawn as a path so it scales crisply -->
-  <path d="
-    M 148 156
-    L 364 156
-    L 364 200
-    L 218 356
-    L 364 356
-    L 364 400
-    L 148 400
-    L 148 356
-    L 294 200
-    L 148 200
-    Z
-  " fill="#F5B301"/>
-
-  <!-- Small dot for character -->
+  <path d="M 148 156 L 364 156 L 364 200 L 218 356 L 364 356 L 364 400 L 148 400 L 148 356 L 294 200 L 148 200 Z" fill="#F5B301"/>
   <circle cx="366" cy="150" r="14" fill="#F5B301"/>
 </svg>
 `;
 
-// ============================================================
-// Render to PNG buffer at the requested size.
-// ============================================================
-function renderIcon(size) {
+function renderLegacySvg(size) {
   const svg = ICON_SVG(size);
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: size },
-    background: 'rgba(0,0,0,0)', // transparent
+    background: 'rgba(0,0,0,0)',
   });
-  const png = resvg.render().asPng();
-  return png;
+  return resvg.render().asPng();
 }
 
-// In-memory LRU-ish cache. Cap at 100 entries.
+async function renderBrandPng(size) {
+  const src = resolveBrandPng();
+  if (!src) throw new Error("no brand png");
+  const PAD = { r: 11, g: 31, b: 58, alpha: 1 }; // #0B1F3A navy
+  return sharp(src)
+    .resize(size, size, { fit: "contain", background: PAD })
+    .flatten({ background: PAD })
+    .png({ compressionLevel: 9, palette: true, quality: 90 })
+    .toBuffer();
+}
+
 const cache = new Map();
 const MAX_CACHE = 100;
 
-function getIcon(size) {
-  if (cache.has(size)) return cache.get(size);
-  const png = renderIcon(size);
+function cacheKey(size) {
+  const v = process.env.ICON_VERSION || '1';
+  return size + ':' + v;
+}
+
+async function getIcon(size) {
+  const key = cacheKey(size);
+  if (cache.has(key)) return cache.get(key);
+
+  let png;
+  try {
+    png = await renderBrandPng(size);
+  } catch (err) {
+    console.error('[icon] brand png unavailable, using svg fallback:', err.message);
+    png = renderLegacySvg(size);
+  }
+
   if (cache.size >= MAX_CACHE) {
-    // Drop the oldest entry
     const firstKey = cache.keys().next().value;
     cache.delete(firstKey);
   }
-  cache.set(size, png);
+  cache.set(key, png);
   return png;
 }
 

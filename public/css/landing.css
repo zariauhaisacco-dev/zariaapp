@@ -42,6 +42,29 @@ button, input { font: inherit; }
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  background-image: image-set(
+    url('/images/login-hero.webp') type('image/webp'),
+    url('/images/login-hero.png') type('image/png')
+  );
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+.landing-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(244, 248, 252, 0.35);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landing-shell > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ============ Nav ============ */
@@ -53,8 +76,10 @@ button, input { font: inherit; }
   justify-content: space-between;
   gap: 18px;
   padding: 14px clamp(20px, 5vw, 76px);
-  background: rgba(255,255,255,.96);
-  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-bottom: 1px solid rgba(255,255,255,0.25);
 }
 
 .land-brand-lockup {
@@ -129,12 +154,7 @@ button, input { font: inherit; }
   display: flex;
   align-items: center;
   padding: clamp(32px, 5vw, 76px);
-  background:
-    radial-gradient(circle at 95% 3%, #55a76b70, transparent 42%),
-    radial-gradient(circle at 0% 100%, #1889d570, transparent 48%),
-    radial-gradient(circle at 100% 65%, #cf263240, transparent 38%),
-    radial-gradient(circle at 30% 40%, #f5a90022, transparent 50%),
-    linear-gradient(145deg, #ffffff, #f4f8fc);
+  background: transparent;
 }
 
 .land-copy-inner {
@@ -216,10 +236,12 @@ button, input { font: inherit; }
   align-items: center;
   gap: 11px;
   padding: 12px 17px;
-  border: 1px solid white;
+  border: 1px solid rgba(255,255,255,0.6);
   border-radius: 30px;
-  background: #ffffffdd;
-  box-shadow: 0 4px 15px #082b5209;
+  background: rgba(255,255,255,0.20);
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  box-shadow: 0 4px 15px rgba(8,43,82,0.15);
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
@@ -252,9 +274,9 @@ button, input { font: inherit; }
   box-shadow: 0 4px 12px rgba(0,0,0,0.20);
 }
 
-.land-trust-chip[data-color="green"] { background: var(--green); }
-.land-trust-chip[data-color="blue"]  { background: var(--blue); }
-.land-trust-chip[data-color="red"]   { background: var(--red); }
+.land-trust-chip[data-color="green"] { background: rgba(35,132,73,0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.land-trust-chip[data-color="blue"]  { background: rgba(8,120,209,0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.land-trust-chip[data-color="red"]   { background: rgba(207,38,50,0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 
 /* ============ Login side ============ */
 
@@ -265,33 +287,13 @@ button, input { font: inherit; }
   justify-content: center;
   padding: clamp(25px, 5vw, 75px);
   overflow: hidden;
-  background: #0a1520;
+  background: transparent;
 }
-
-/* Background image layer */
-.land-login-side::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: image-set(
-    url('/images/login-hero.webp') type('image/webp'),
-    url('/images/login-hero.png') type('image/png')
-  );
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  z-index: 0;
-}
+/* coin image now comes from .landing-shell — no local ::before needed */
 
 /* Dark gradient overlay for card readability */
 .land-login-side::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(8,22,40,0.55) 0%, rgba(8,22,40,0.35) 40%, rgba(8,22,40,0.70) 100%),
-    radial-gradient(80% 60% at 50% 50%, transparent 30%, rgba(8,22,40,0.30) 100%);
-  z-index: 1;
+  display: none;
 }
 
 .land-login-side > * {
@@ -303,11 +305,11 @@ button, input { font: inherit; }
   width: 100%;
   max-width: 500px;
   padding: clamp(26px, 3.5vw, 44px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.01);
-  backdrop-filter: blur(10px) saturate(170%);
-  -webkit-backdrop-filter: blur(10px) saturate(170%);
+  background: rgba(15, 30, 55, 0.35);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
   box-shadow:
     0 16px 32px rgba(0, 0, 0, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -518,7 +520,10 @@ button, input { font: inherit; }
   justify-content: space-between;
   gap: 16px 25px;
   padding: 21px clamp(20px, 4vw, 65px);
-  background: linear-gradient(105deg, #08284c, #0b365f);
+  background: rgba(8, 22, 40, 0.55);
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+  border-top: 1px solid rgba(255,255,255,0.12);
   color: white;
   font-size: 12px;
 }
@@ -547,10 +552,7 @@ button, input { font: inherit; }
     min-height: 560px;
     background-position: center top;
   }
-  .land-login-side::after {
-    background:
-      linear-gradient(180deg, rgba(8,22,40,0.65) 0%, rgba(8,22,40,0.45) 30%, rgba(8,22,40,0.85) 100%);
-  }
+  /* .land-login-side::after removed — no dark edge */
   .land-login-card { max-width: 540px; }
   .land-footer { flex-direction: column; }
 }
@@ -694,11 +696,7 @@ button, input { font: inherit; }
   .land-copy {
     order: 2;
     padding: 40px 22px 44px;
-    background:
-      radial-gradient(circle at 95% 3%, #55a76b70, transparent 42%),
-      radial-gradient(circle at 0% 100%, #1889d570, transparent 48%),
-      radial-gradient(circle at 100% 65%, #cf263240, transparent 38%),
-      linear-gradient(145deg, #ffffff, #f4f8fc);
+    /* background removed — inherits base .land-copy { background: transparent } */
   }
 
   .land-copy-inner {
@@ -840,3 +838,4 @@ button, input { font: inherit; }
     min-height: 48px;
   }
 }
+

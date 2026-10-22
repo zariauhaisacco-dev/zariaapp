@@ -1489,3 +1489,290 @@ body.is-masked [data-masked]::after {
   color: var(--ink-700, #4B5563);
   margin: 0;
 }
+
+
+/* ============================================================
+   Broadcast channel picker + delivery status
+   ============================================================ */
+
+.channel-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.channel-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border: 1.5px solid var(--line-1);
+  border-radius: 10px;
+  background: var(--surface-1);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--ink-700);
+  transition: all 160ms ease;
+  text-align: center;
+}
+
+.channel-card:hover:not(:disabled) {
+  border-color: var(--amber);
+  background: var(--surface-2);
+}
+
+.channel-card.is-selected {
+  border-color: var(--navy);
+  background: #F0F4FA;
+  box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
+}
+
+.channel-card.is-disabled,
+.channel-card:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--surface-2);
+}
+
+.channel-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.channel-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.channel-count {
+  font-size: 11px;
+  color: var(--ink-500);
+  font-family: var(--font-mono);
+}
+
+.channel-card.is-selected .channel-name {
+  color: var(--navy);
+}
+
+.channel-card.is-selected .channel-count {
+  color: var(--ink-700);
+}
+
+/* Delivery status panel */
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.status-row {
+  display: grid;
+  grid-template-columns: 32px 80px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-1);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+
+.status-icon {
+  font-size: 18px;
+  text-align: center;
+}
+
+.status-name {
+  font-weight: 600;
+  color: var(--ink-900);
+  font-size: 13px;
+}
+
+.status-counts {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-700);
+}
+
+.status-badge {
+  font-size: 14px;
+}
+
+.status-badge.pos { color: var(--pos); }
+.status-badge.neg { color: var(--neg); }
+
+@media (max-width: 640px) {
+  .channel-picker {
+    grid-template-columns: 1fr;
+  }
+  .status-row {
+    grid-template-columns: 32px 1fr;
+    gap: 8px;
+  }
+  .status-counts {
+    grid-column: 2 / -1;
+  }
+}
+
+
+/* ============================================================
+   Client list filter tabs + row actions
+   ============================================================ */
+
+.filter-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line-1);
+  background: var(--surface-1);
+  color: var(--ink-700);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 120ms;
+}
+
+.filter-tab:hover {
+  background: var(--surface-2);
+}
+
+.filter-tab.active {
+  background: var(--navy, #0B1F3A);
+  color: #fff;
+  border-color: var(--navy, #0B1F3A);
+}
+
+.filter-count {
+  font-size: 11.5px;
+  padding: 2px 7px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.15);
+  font-family: var(--font-mono);
+}
+
+.filter-tab.active .filter-count {
+  background: rgba(255,255,255,0.20);
+}
+
+.filter-tab:not(.active) .filter-count {
+  background: var(--surface-2);
+  color: var(--ink-500);
+}
+
+/* Row action buttons */
+.table td .icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-500);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: all 120ms;
+}
+
+.table td .icon-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--line-1);
+  color: var(--ink-900);
+}
+
+/* Prevent row hover from obscuring the delete action */
+.table tr:hover {
+  background: var(--surface-2);
+}
+
+/* ============================================================
+   Modal — overlay dialog for forms and confirmations
+   ============================================================ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: modalFadeIn 0.15s ease-out;
+}
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.modal {
+  background: var(--paper, #fff);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.28), 0 6px 20px rgba(15, 23, 42, 0.15);
+  animation: modalSlideIn 0.2s ease-out;
+}
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line, #e5e7eb);
+}
+.modal-head h2, .modal-head h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink-900, #0B1F3A);
+}
+.modal-head .icon-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 22px;
+  line-height: 1;
+  border-radius: 8px;
+  color: var(--ink-500, #637c9b);
+}
+.modal-head .icon-btn:hover {
+  background: var(--surface-2, #f4f8fc);
+  color: var(--ink-900, #0B1F3A);
+}
+.modal-body {
+  padding: 22px;
+}
+.modal-foot {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 22px;
+  border-top: 1px solid var(--line, #e5e7eb);
+  background: var(--surface-2, #f8fafc);
+  border-radius: 0 0 16px 16px;
+}
+@media (max-width: 540px) {
+  .modal-backdrop { padding: 12px; align-items: flex-end; }
+  .modal { max-height: 88vh; }
+}
+
+/* Force modal backdrops hidden when [hidden] attribute present */
+.modal-backdrop[hidden] { display: none !important; }

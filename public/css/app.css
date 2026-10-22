@@ -391,3 +391,83 @@ button { font-family: inherit; }
   .auth-panel { padding: 0; }
   body { background: white; }
 }
+
+/* ────────────────────────────────────────────────────────────────
+   Client contributions — year tabs + month grid
+   Added: 2026-10-21
+   ──────────────────────────────────────────────────────────────── */
+
+.year-tab {
+  background: transparent;
+  border: none;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-500);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.year-tab:hover { color: var(--ink-700); }
+.year-tab.active {
+  color: var(--ink-900, #0B1F3A);
+  border-bottom-color: var(--amber-500, #F5B301);
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 6px;
+}
+.month-cell {
+  background: var(--bg-2, #F8F7F5);
+  border: 1px solid var(--line-1, #E5E3DF);
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+  min-height: 66px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.month-cell.has-amount {
+  background: rgba(245, 179, 1, 0.08);
+  border-color: rgba(245, 179, 1, 0.35);
+}
+.month-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-500);
+}
+.month-amount {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-900, #0B1F3A);
+}
+.month-cell:not(.has-amount) .month-amount { color: var(--ink-400, #B5B1A9); }
+
+@media (max-width: 720px) {
+  .month-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .month-cell { min-height: 58px; }
+}
+@media (max-width: 400px) {
+  .month-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   Contributions chart (SVG) — 2026-10-22
+   ──────────────────────────────────────────────────────────────── */
+#chartContainer svg { font-family: var(--font-body, system-ui, sans-serif); }
+#chartContainer rect { transition: opacity 0.15s ease; }
+#chartContainer rect:hover { opacity: 0.8; }
+#chartContainer text { pointer-events: none; user-select: none; }
+
+@media (max-width: 500px) {
+  #chartContainer svg text[font-size="9"] { font-size: 8px; }
+}

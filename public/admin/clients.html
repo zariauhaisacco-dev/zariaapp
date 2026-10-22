@@ -39,11 +39,13 @@
         <div class="nav-group-label">People</div>
         <a class="nav-item active" href="/admin/clients">Clients</a>
         <a class="nav-item" href="/admin/registrations">Registrations</a>
+        <a class="nav-item" href="/admin/chamas">Chamas</a>
       </div>
       <div class="nav-group">
         <div class="nav-group-label">Money</div>
         <a class="nav-item" href="/admin/transactions">Transactions</a>
         <a class="nav-item" href="/admin/reports">Reports</a>
+        <a class="nav-item" href="/admin/broadcasts">Broadcasts</a>
       </div>
       <div class="nav-group">
         <div class="nav-group-label">System</div>
@@ -77,6 +79,14 @@
       </div>
     </div>
 
+    <!-- Status filter tabs -->
+    <div class="filter-tabs" id="clientFilter" style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+      <button type="button" class="btn-sm filter-tab active" data-status="all">All <span class="filter-count" id="countAll">—</span></button>
+      <button type="button" class="btn-sm filter-tab" data-status="active">Active <span class="filter-count" id="countActive">—</span></button>
+      <button type="button" class="btn-sm filter-tab" data-status="suspended">Suspended <span class="filter-count" id="countSuspended">—</span></button>
+      <button type="button" class="btn-sm filter-tab" data-status="closed">Closed <span class="filter-count" id="countClosed">—</span></button>
+    </div>
+
     <section class="card">
       <div class="table-wrap">
         <table class="table">
@@ -88,10 +98,11 @@
               <th class="num" style="text-align:right">Active loans</th>
               <th>Status</th>
               <th>Joined</th>
+              <th style="width:50px"></th>
             </tr>
           </thead>
           <tbody id="clientsBody">
-            <tr><td colspan="6" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
           </tbody>
         </table>
       </div>

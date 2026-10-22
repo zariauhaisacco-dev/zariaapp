@@ -170,6 +170,133 @@ router.get('/statements/:loanId', async (req, res) => {
 });
 
 // ---------------------------------------------------------------
+// GET /api/pdf/contributions?year=YYYY|all — savings contributions
+// Access: admin (any) or the owning client
+// ---------------------------------------------------------------
+router.get('/contributions', async (req, res) => {
+  try {
+    // Resolve client ID from user role
+    let clientId;
+    if (req.user.role === 'admin') {
+      // Admin must pass ?client_id=
+      clientId = Number(req.query.client_id);
+      if (!clientId) return res.status(400).json({ error: 'client_id required for admin' });
+    } else {
+      const [cl] = await db.query('SELECT id FROM clients WHERE user_id = ? LIMIT 1', [req.user.id]);
+      if (!cl.length) return res.status(404).json({ error: 'Client not found' });
+      clientId = cl[0].id;
+    }
+
+    // Load client + savings account
+    const [clientRows] = await db.query(
+      'SELECT c.id, c.full_name, c.phone, u.email FROM clients c JOIN users u ON u.id = c.user_id WHERE c.id = ? LIMIT 1',
+      [clientId]
+    );
+    if (!clientRows.length) return res.status(404).json({ error: 'Client not found' });
+    const client = clientRows[0];
+
+    const [accountRows] = await db.query(
+      'SELECT id, account_number, balance FROM savings_accounts WHERE client_id = ? LIMIT 1',
+      [clientId]
+    );
+    if (!accountRows.length) return res.status(404).json({ error: 'No savings account' });
+    const account = accountRows[0];
+
+    // Parse year filter
+    const yearParam = req.query.year || 'all';
+    let yearFilter = null;
+    let periodLabel;
+    if (yearParam === 'all') {
+      periodLabel = 'All years';
+    } else {
+      yearFilter = Number(yearParam);
+      if (!Number.isInteger(yearFilter) || yearFilter < 2020 || yearFilter > 2100) {
+        return res.status(400).json({ error: 'Invalid year' });
+      }
+      periodLabel = '1 Jan ' + yearFilter + ' – 31 Dec ' + yearFilter;
+    }
+
+    // Load transactions (reuse the same query style as /api/me/savings/monthly)
+    const [txRows] = await db.query(
+      `SELECT id, amount, reference, notes, created_at
+         FROM savings_transactions
+        WHERE savings_account_id = ?
+          AND status = 'completed'
+        ORDER BY created_at ASC`,
+      [account.id]
+    );
+
+    // Group by year → month
+    const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const byYear = {};
+    txRows.forEach(function (r) {
+      const d = new Date(r.created_at);
+      const y = d.getUTCFullYear();
+      const m = d.getUTCMonth();
+      if (yearFilter && y !== yearFilter) return;
+      if (!byYear[y]) {
+        byYear[y] = {
+          year: y,
+          total: 0,
+          months: Array.from({ length: 12 }, function (_, i) {
+            return { month: i + 1, label: MONTH_LABELS[i], amount: 0, count: 0, refs: [] };
+          }),
+        };
+      }
+      byYear[y].months[m].amount += Number(r.amount);
+      byYear[y].months[m].count += 1;
+      if (r.reference) byYear[y].months[m].refs.push(r.reference);
+      byYear[y].total += Number(r.amount);
+    });
+
+    const years = Object.keys(byYear).map(Number).sort(function (a, b) { return a - b; });
+    const yearsOut = years.map(function (y) { return byYear[y]; });
+
+    const grandTotal = yearsOut.reduce(function (s, yr) { return s + yr.total; }, 0);
+    const totalCount = txRows.filter(function (r) {
+      if (!yearFilter) return true;
+      return new Date(r.created_at).getUTCFullYear() === yearFilter;
+    }).length;
+
+    // Stream PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    const fname = 'zaria-contributions-' + account.account_number +
+                  (yearFilter ? '-' + yearFilter : '-all') + '.pdf';
+    res.setHeader('Content-Disposition', 'inline; filename="' + fname + '"');
+
+    pdf.streamContributionsStatement(res, {
+      client: {
+        full_name: client.full_name,
+        phone: client.phone,
+        email: client.email || '',
+        account_number: account.account_number,
+      },
+      period_label: periodLabel,
+      totals: {
+        total: grandTotal,
+        count: totalCount,
+        balance: Number(account.balance),
+      },
+      years: yearsOut,
+    });
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: req.user.role,
+      action: 'pdf.contributions_generated',
+      entityType: 'client',
+      entityId: clientId,
+      newValues: { year: yearParam, total: grandTotal, count: totalCount },
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  } catch (err) {
+    console.error('[pdf contributions]', err.message);
+    safeError(res, 500, 'Could not generate contributions statement');
+  }
+});
+
+// ---------------------------------------------------------------
 // GET /api/agreements/:loanId — loan agreement
 // Access: admin or the owning client
 // ---------------------------------------------------------------

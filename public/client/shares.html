@@ -23,25 +23,7 @@
 
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-  <aside class="sidebar" id="sidebar">
-    <nav>
-      <div class="nav-group">
-        <div class="nav-group-label">My account</div>
-        <a class="nav-item" href="/client/dashboard">Overview</a>
-        <a class="nav-item" href="/client/loans">My loans</a>
-        <a class="nav-item" href="/client/savings">My savings</a>
-        <a class="nav-item active" href="/client/shares">My shares</a>
-        <a class="nav-item" href="/client/dividends">My dividends</a>
-        <a class="nav-item" href="/client/profile">Profile</a>
-        <a class="nav-item" href="/client/transactions">Transactions</a>
-      </div>
-      <div class="nav-group">
-        <div class="nav-group-label">Services</div>
-        <a class="nav-item" href="/client/request">Request a loan</a>
-        <a class="nav-item" href="/client/statements">Statements</a>
-      </div>
-    </nav>
-  </aside>
+  <aside id="sidebar" class="sidebar" data-sb-host></aside>
 
   <main class="main">
     <div class="page-head">
@@ -111,6 +93,7 @@
   </main>
 </div>
 
-<script src="/js/client-shares.js" defer></script>
+<script src="/js/client-shares.js?v=2" defer></script>
+  <script src="/js/sidebar-client.js?v=1" defer></script>
 </body>
 </html>

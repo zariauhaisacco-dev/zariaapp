@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0B1F3A">
-  <title>Zaria · My savings</title>
+  <title>Zaria · My contributions</title>
   <link rel="stylesheet" href="/css/app.css">
   <link rel="stylesheet" href="/css/dashboard.css">
 </head>
@@ -23,34 +23,17 @@
 
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-  <aside class="sidebar" id="sidebar">
-    <nav>
-      <div class="nav-group">
-        <div class="nav-group-label">My account</div>
-        <a class="nav-item" href="/client/dashboard">Overview</a>
-        <a class="nav-item" href="/client/loans">My loans</a>
-        <a class="nav-item active" href="/client/savings">My savings</a>
-        <a class="nav-item" href="/client/transactions">Transactions</a>
-        <a class="nav-item" href="/client/shares">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
-          My shares
-        </a>
-        <a class="nav-item" href="/client/dividends">My dividends</a>
-        <a class="nav-item" href="/client/profile">Profile</a>
-      </div>
-      <div class="nav-group">
-        <div class="nav-group-label">Services</div>
-        <a class="nav-item" href="/client/request">Request a loan</a>
-        <a class="nav-item" href="/client/statements">Statements</a>
-      </div>
-    </nav>
-  </aside>
+  <aside id="sidebar" class="sidebar" data-sb-host></aside>
 
   <main class="main">
     <div class="page-head">
       <div>
-        <h1 class="page-title">My savings</h1>
-        <p class="page-sub">Save with Zaria and earn interest</p>
+        <h1 class="page-title">My contributions</h1>
+        <p class="page-sub" id="acctSub">Loading…</p>
+      </div>
+      <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="btn-sm btn-outline" href="/api/me/savings/monthly.csv" id="csvBtn">Download CSV</a>
+        <a class="btn-sm btn-outline" href="/api/pdf/contributions" target="_blank" id="pdfBtn">Download PDF</a>
       </div>
     </div>
 
@@ -66,31 +49,58 @@
     </div>
 
     <div id="accountSection" hidden>
-      <section class="client-primary" style="margin-bottom:20px">
-        <div class="label">Savings balance</div>
-        <div class="amount"><span class="unit">KES</span><span id="balAmount">—</span></div>
-        <div class="meta" id="acctNumber">—</div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px;position:relative;z-index:1">
+      <section class="client-primary" style="margin-bottom:20px">
+        <div class="label">Total contributions</div>
+        <div class="amount"><span class="unit">KES</span><span id="grandTotal">—</span></div>
+        <div class="meta" id="lastContrib">—</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;position:relative;z-index:1">
           <div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Deposited</div>
-            <div style="font-family:var(--font-mono);font-size:15px;font-weight:600" id="balDeposited">—</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">This year</div>
+            <div style="font-family:var(--font-mono);font-size:15px;font-weight:600" id="thisYearTotal">—</div>
           </div>
           <div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Withdrawn</div>
-            <div style="font-family:var(--font-mono);font-size:15px;font-weight:600" id="balWithdrawn">—</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Current balance</div>
+            <div style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--amber-500)" id="currentBalance">—</div>
           </div>
+        </div>
+      </section>
+
+      <div class="year-tabs" id="yearTabs" style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--line-1);padding-bottom:0"></div>
+
+      <section class="card" id="chartCard" style="margin-bottom:20px">
+        <div class="card-head">
           <div>
-            <div style="font-size:11px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Interest earned</div>
-            <div style="font-family:var(--font-mono);font-size:15px;font-weight:600;color:var(--amber-500)" id="balInterest">—</div>
+            <h2 class="card-title" id="chartTitle">Monthly chart</h2>
+            <p class="card-sub" id="chartSub">—</p>
           </div>
+        </div>
+        <div class="card-body" style="padding:16px 20px 24px">
+          <div id="chartContainer" style="width:100%"></div>
         </div>
       </section>
 
       <section class="card">
         <div class="card-head">
           <div>
-            <h2 class="card-title">Recent activity</h2>
+            <h2 class="card-title" id="monthlyTitle">Monthly contributions</h2>
+            <p class="card-sub" id="monthlySub">—</p>
+          </div>
+        </div>
+        <div class="card-body" style="padding:16px 20px 20px">
+          <div class="month-grid" id="monthGrid"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:16px;border-top:1px solid var(--line-1)">
+            <div style="font-size:12px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em">Year total</div>
+            <div style="font-family:var(--font-mono);font-size:18px;font-weight:700" id="yearTotal">—</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:20px">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">All transactions</h2>
             <p class="card-sub" id="txCount">—</p>
           </div>
         </div>
@@ -116,5 +126,6 @@
 </div>
 
 <script src="/js/client-savings.js" defer></script>
+  <script src="/js/sidebar-client.js?v=1" defer></script>
 </body>
 </html>

@@ -14,6 +14,7 @@
 
 const db = require('../db');
 const audit = require('./audit');
+const notify = require('./notify');
 const loans = require('./loans');
 const savings = require('./savings');
 
@@ -73,6 +74,16 @@ async function recordSuccess(reqRow, mpesaReceipt, resultDesc, ctx) {
         userAgent: ctx.userAgent || null,
       });
 
+      // Notify client
+      if (reqRow.client_id) {
+        const [acctRows] = await db.query('SELECT balance FROM savings_accounts WHERE id = ?', [reqRow.savings_account_id]);
+        const newBal = acctRows.length ? Number(acctRows[0].balance) : 0;
+        notify.alert({
+          template: 'savings_deposit_received',
+          clientId: reqRow.client_id,
+          data: { amount, newBalance: newBal, receipt: mpesaReceipt },
+        }).catch(function (e) { console.error('[notify savings deposit]', e.message); });
+      }
       return { recorded: true, target: 'savings' };
     }
 
@@ -101,7 +112,92 @@ async function recordSuccess(reqRow, mpesaReceipt, resultDesc, ctx) {
         userAgent: ctx.userAgent || null,
       });
 
+      // Notify client
+      if (reqRow.client_id) {
+        const [loanRows] = await db.query('SELECT total_repayable, amount_repaid, status FROM loans WHERE id = ?', [reqRow.loan_id]);
+        const loanData = loanRows.length ? loanRows[0] : {};
+        const outstanding = Number(loanData.total_repayable || 0) - Number(loanData.amount_repaid || 0);
+        const fullyRepaid = loanData.status === 'repaid';
+        notify.alert({
+          template: 'payment_received',
+          clientId: reqRow.client_id,
+          data: { amount, outstanding, fullyRepaid, receipt: mpesaReceipt, loanId: reqRow.loan_id },
+        }).catch(function (e) { console.error('[notify loan payment]', e.message); });
+      }
       return { recorded: true, target: 'loan' };
+    }
+
+    if (reqRow.chama_savings_account_id) {
+      const chama = require('./chama');
+      await chama.recordContributionByAccountId({
+        chamaSavingsAccountId: reqRow.chama_savings_account_id,
+        clientId: reqRow.client_id,
+        amount,
+        mpesaReceipt,
+        reference: 'MPESA-STK-CHAMA',
+        notes: 'M-Pesa STK chama contribution',
+        recordedBy: null,
+      });
+
+      await audit.log({
+        actorRole: 'system',
+        action: 'daraja.chama_contribution_recorded',
+        entityType: 'chama_savings_account',
+        entityId: reqRow.chama_savings_account_id,
+        newValues: {
+          amount,
+          mpesa_receipt: mpesaReceipt,
+          checkout_request_id: reqRow.checkout_request_id,
+          source: ctx.source || 'callback',
+        },
+        ip: ctx.ip || null,
+        userAgent: ctx.userAgent || null,
+      });
+
+      // Notify client
+      if (reqRow.client_id) {
+        const [chamaAcctRows] = await db.query('SELECT c.name AS chama_name FROM chama_savings_accounts csa JOIN chamas c ON c.id = csa.chama_id WHERE csa.id = ?', [reqRow.chama_savings_account_id]);
+        const chamaName = chamaAcctRows.length ? chamaAcctRows[0].chama_name : 'chama';
+        const [contribRows] = await db.query('SELECT status FROM chama_contributions WHERE client_id = ? ORDER BY id DESC LIMIT 1', [reqRow.client_id]);
+        const contribStatus = contribRows.length ? contribRows[0].status : 'paid';
+        notify.alert({
+          template: 'chama_contribution_received',
+          clientId: reqRow.client_id,
+          data: { amount, chamaName, status: contribStatus, receipt: mpesaReceipt },
+        }).catch(function (e) { console.error('[notify chama contribution]', e.message); });
+      }
+      return { recorded: true, target: 'chama' };
+    }
+
+    if (reqRow.registration_fee_client_id) {
+      // Mark fee paid + insert fee record
+      await db.query(
+        'UPDATE clients SET registration_fee_paid = 1, registration_fee_paid_at = NOW() WHERE id = ?',
+        [reqRow.registration_fee_client_id]
+      );
+      await db.query(
+        'INSERT INTO registration_fees (client_id, amount, channel, mpesa_receipt, status, recorded_by) VALUES (?, ?, ?, ?, ?, NULL)',
+        [reqRow.registration_fee_client_id, amount, 'mpesa', mpesaReceipt, 'paid']
+      );
+
+      await audit.log({
+        actorRole: 'system',
+        action: 'registration_fee.paid',
+        entityType: 'client',
+        entityId: reqRow.registration_fee_client_id,
+        newValues: { amount, mpesa_receipt: mpesaReceipt, checkout_request_id: reqRow.checkout_request_id },
+        ip: ctx.ip || null,
+        userAgent: ctx.userAgent || null,
+      });
+
+      // Notify client
+      notify.alert({
+        template: 'registration_fee_paid',
+        clientId: reqRow.registration_fee_client_id,
+        data: { amount, receipt: mpesaReceipt },
+      }).catch(function (e) { console.error('[notify reg fee paid]', e.message); });
+
+      return { recorded: true, target: 'registration_fee' };
     }
 
     // Marked success but no target — unusual

@@ -2,6 +2,7 @@ const express = require('express');
 const Joi = require('joi');
 const db = require('../db');
 const audit = require('../services/audit');
+const ping = require('../services/ping');
 const savings = require('../services/savings');
 const uploads = require('../services/uploads');
 const daraja = require('../services/daraja');
@@ -563,4 +564,207 @@ router.post('/daraja/b2c-test', async (req, res) => {
   }
 });
 
+
+// ---------------------------------------------------------------
+// SMS / Ping Africa settings
+// ---------------------------------------------------------------
+router.get('/ping', async (req, res) => {
+  try {
+    const cfg = await ping.loadConfig();
+    let creditsBalance = null;
+    let creditsError = null;
+    try {
+      const c = await ping.getCredits();
+      creditsBalance = c.balance;
+    } catch (err) {
+      creditsError = err.message;
+    }
+
+    const [smsToday] = await db.query(
+      "SELECT COUNT(*) AS c FROM sms_logs WHERE status='sent' AND created_at >= CURDATE()"
+    );
+    const [smsMonth] = await db.query(
+      "SELECT COUNT(*) AS c, COALESCE(SUM(credits_charged), 0) AS credits FROM sms_logs WHERE status='sent' AND created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')"
+    );
+
+    const [adminPhoneRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'admin_alert_phone'");
+    const [adminSmsEnabledRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'admin_sms_alerts_enabled'");
+
+    res.json({
+      enabled: cfg.enabled,
+      sender_id: cfg.senderId,
+      whatsapp_instance: cfg.whatsappInstance,
+      ussd_code: cfg.ussdCode,
+      daily_sms_limit: cfg.dailyLimit,
+      credits_balance: creditsBalance,
+      credits_error: creditsError,
+      sms_today: smsToday[0].c,
+      sms_this_month: smsMonth[0].c,
+      credits_used_this_month: Number(smsMonth[0].credits || 0),
+      admin_alert_phone: adminPhoneRow.length ? adminPhoneRow[0].setting_value : '',
+      admin_sms_alerts_enabled: !adminSmsEnabledRow.length || adminSmsEnabledRow[0].setting_value === '1',
+    });
+  } catch (err) {
+    console.error('[settings ping get]', err.message);
+    res.status(500).json({ error: 'Could not load SMS settings' });
+  }
+});
+
+router.post('/ping', async (req, res) => {
+  try {
+    const schema = Joi.object({
+      enabled: Joi.boolean(),
+      sender_id: Joi.string().max(20).allow('', null),
+      whatsapp_instance: Joi.string().max(100).allow('', null),
+      ussd_code: Joi.string().max(50).allow('', null),
+      daily_sms_limit: Joi.number().integer().min(1).max(100),
+      admin_alert_phone: Joi.string().pattern(/^2547\d{8}$/).allow('', null),
+      admin_sms_alerts_enabled: Joi.boolean(),
+    });
+    const { error, value } = schema.validate(req.body, { stripUnknown: true });
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const updates = [];
+    if (value.enabled != null) updates.push(['ping_enabled', value.enabled ? '1' : '0']);
+    if (value.sender_id != null) updates.push(['ping_sender_id', value.sender_id]);
+    if (value.whatsapp_instance != null) updates.push(['ping_whatsapp_instance', value.whatsapp_instance]);
+    if (value.ussd_code != null) updates.push(['ping_ussd_code', value.ussd_code]);
+    if (value.daily_sms_limit != null) updates.push(['ping_daily_sms_limit', String(value.daily_sms_limit)]);
+    if (value.admin_alert_phone != null) updates.push(['admin_alert_phone', value.admin_alert_phone]);
+    if (value.admin_sms_alerts_enabled != null) updates.push(['admin_sms_alerts_enabled', value.admin_sms_alerts_enabled ? '1' : '0']);
+
+    for (const [k, v] of updates) {
+      await savings.updateSetting(k, v, req.user.id, null);
+    }
+    ping.reloadConfig();
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: 'settings.ping_updated',
+      entityType: 'app_settings',
+      newValues: value,
+      ip: req.ip,
+    }).catch(function () {});
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[settings ping update]', err.message);
+    res.status(500).json({ error: 'Could not save SMS settings' });
+  }
+});
+
+router.post('/ping/test', async (req, res) => {
+  try {
+    const schema = Joi.object({
+      phone: Joi.string().required(),
+      message: Joi.string().max(160).default('ZARIA: Test SMS from admin panel.'),
+    });
+    const { error, value } = schema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const result = await ping.sendSms({
+      to: value.phone,
+      message: value.message,
+      template: 'admin_test',
+      throwOnFail: true,
+    });
+    res.json({ ok: true, provider_id: result.providerId, credits: result.credits });
+  } catch (err) {
+    console.error('[settings ping test]', err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
+// ─────────────────────────────────────────────────────────────
+// Admin 2FA (added 2026-10-22)
+// GET  /api/admin/settings/admin-2fa — current phone + enabled state
+// POST /api/admin/settings/admin-2fa — set phone, toggle 2FA
+// ─────────────────────────────────────────────────────────────
+
+router.get('/admin-2fa', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT phone FROM users WHERE id = ? LIMIT 1',
+      [req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'User not found' });
+    const phone = rows[0].phone;
+    res.json({
+      phone: phone || null,
+      enabled: !!phone,
+    });
+  } catch (err) {
+    console.error('[settings admin-2fa GET]', err.message);
+    res.status(500).json({ error: 'Could not load 2FA settings' });
+  }
+});
+
+const twofaSchema = Joi.object({
+  phone: Joi.string().pattern(/^254[17]\d{8}$/).allow('', null).optional(),
+  enabled: Joi.boolean().required(),
+});
+
+router.post('/admin-2fa', async (req, res) => {
+  try {
+    const { error, value } = twofaSchema.validate(req.body, { stripUnknown: true });
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
+    const enabled = value.enabled;
+    const phone = (value.phone || '').trim();
+
+    if (enabled) {
+      if (!phone) {
+        return res.status(400).json({
+          error: 'Phone number required to enable 2FA (format: 2547XXXXXXXX or 2541XXXXXXXX)',
+        });
+      }
+      if (!/^254[17]\d{8}$/.test(phone)) {
+        return res.status(400).json({
+          error: 'Phone must be in format 2547XXXXXXXX or 2541XXXXXXXX',
+        });
+      }
+    }
+
+    const newPhone = enabled ? phone : null;
+
+    const [oldRows] = await db.query(
+      'SELECT phone FROM users WHERE id = ? LIMIT 1',
+      [req.user.id]
+    );
+    const oldPhone = oldRows[0] ? oldRows[0].phone : null;
+
+    await db.query(
+      'UPDATE users SET phone = ? WHERE id = ?',
+      [newPhone, req.user.id]
+    );
+
+    await audit.log({
+      actorUserId: req.user.id,
+      actorRole: 'admin',
+      action: enabled ? 'admin.2fa_enabled' : 'admin.2fa_disabled',
+      entityType: 'user',
+      entityId: req.user.id,
+      oldValues: { phone: oldPhone },
+      newValues: { phone: newPhone },
+      ip: req.ip,
+      userAgent: req.get('user-agent') || '',
+    });
+
+    res.json({
+      ok: true,
+      phone: newPhone,
+      enabled: !!newPhone,
+      message: enabled
+        ? '2FA enabled. You will receive an SMS code on your next login.'
+        : '2FA disabled. Login will no longer require a code.',
+    });
+  } catch (err) {
+    console.error('[settings admin-2fa POST]', err.message);
+    res.status(500).json({ error: 'Could not save 2FA settings' });
+  }
+});
 module.exports = router;

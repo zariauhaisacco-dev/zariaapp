@@ -21,13 +21,14 @@ router.get('/public-key', (req, res) => {
 
 const subscribeSchema = Joi.object({
   subscription: Joi.object({
-    endpoint: Joi.string().uri().max(500).required(),
+    endpoint: Joi.string().required(),
+    expirationTime: Joi.number().allow(null).optional(),
     keys: Joi.object({
       p256dh: Joi.string().required(),
       auth: Joi.string().required(),
-    }).required(),
-  }).required(),
-});
+    }).required().unknown(true),
+  }).required().unknown(true),
+}).unknown(true);
 
 const unsubscribeSchema = Joi.object({
   endpoint: Joi.string().uri().max(500).required(),

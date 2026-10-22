@@ -230,6 +230,97 @@ function streamStatement(res, data) {
   doc.end();
 }
 
+function streamContributionsStatement(res, data) {
+  const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
+  doc.pipe(res);
+  doc.font(FONT_REG);
+
+  drawHeader(doc, 'Contributions Statement');
+  doc.y = 120;
+
+  // ─── Client info block ───
+  doc.fillColor(COLORS.ink).font(FONT_BOLD).fontSize(14).text(data.client.full_name);
+  doc.font(FONT_REG).fontSize(10).fillColor(COLORS.ink500)
+    .text(data.client.phone + ' · ' + (data.client.email || ''), 50, doc.y);
+  doc.text('Account: ' + (data.client.account_number || '—'), 50, doc.y);
+  doc.text('Statement period: ' + data.period_label, 50, doc.y);
+
+  doc.moveDown(1.5);
+
+  // ─── Summary cards ───
+  const startY = doc.y;
+  const w = (doc.page.width - 100) / 3;
+  const items = [
+    ['Total contributed', 'KES ' + fmtMoney(data.totals.total)],
+    ['Contributions', String(data.totals.count)],
+    ['Current balance', 'KES ' + fmtMoney(data.totals.balance)],
+  ];
+  items.forEach(function (it, i) {
+    const x = 50 + i * w;
+    doc.rect(x, startY, w - 4, 60).fill(COLORS.paperAlt);
+    doc.fillColor(COLORS.ink500).font(FONT_REG).fontSize(8).text(it[0].toUpperCase(), x + 10, startY + 10);
+    doc.fillColor(COLORS.ink).font(FONT_MONO).fontSize(13).text(it[1], x + 10, startY + 28);
+  });
+  doc.y = startY + 80;
+
+  // ─── Month-by-month table, grouped by year ───
+  doc.fillColor(COLORS.navyMid).font(FONT_BOLD).fontSize(12).text('Monthly breakdown');
+  doc.moveDown(0.5);
+
+  data.years.forEach(function (yr) {
+    // Year heading
+    doc.fillColor(COLORS.ink).font(FONT_BOLD).fontSize(11)
+      .text(yr.year + ' — Total KES ' + fmtMoney(yr.total), 50, doc.y);
+    doc.moveDown(0.3);
+
+    // Table header
+    const headerY = doc.y;
+    doc.font(FONT_BOLD).fontSize(8).fillColor(COLORS.ink500);
+    doc.text('MONTH', 70, headerY);
+    doc.text('DATE', 180, headerY);
+    doc.text('REFERENCE', 280, headerY);
+    doc.text('AMOUNT', doc.page.width - 150, headerY, { width: 100, align: 'right' });
+    doc.moveDown(0.3);
+
+    // Row per month with amount > 0
+    let anyRows = false;
+    yr.months.forEach(function (m) {
+      if (m.amount > 0) {
+        anyRows = true;
+        const y = doc.y;
+        doc.font(FONT_REG).fontSize(9).fillColor(COLORS.ink);
+        doc.text(m.label, 70, y);
+        doc.text('15 ' + m.label + ' ' + yr.year, 180, y);
+        doc.text((m.refs && m.refs[0]) || '—', 280, y);
+        doc.font(FONT_MONO).fontSize(9)
+          .text('KES ' + fmtMoney(m.amount), doc.page.width - 150, y, { width: 100, align: 'right' });
+        doc.moveDown(0.35);
+      }
+    });
+
+    if (!anyRows) {
+      doc.font(FONT_REG).fontSize(9).fillColor(COLORS.ink500).text('No contributions this year.', 70, doc.y);
+    }
+
+    doc.moveDown(0.8);
+  });
+
+  // ─── Grand total ───
+  doc.moveDown(0.5);
+  doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke(COLORS.line);
+  doc.moveDown(0.5);
+  doc.fillColor(COLORS.ink).font(FONT_BOLD).fontSize(11)
+    .text('GRAND TOTAL: KES ' + fmtMoney(data.totals.total), 50, doc.y);
+
+  doc.moveDown(1.5);
+  doc.fillColor(COLORS.ink500).font(FONT_REG).fontSize(9)
+    .text('This statement is computer-generated. For questions, contact info@zariauhai.com.',
+      50, doc.y, { width: doc.page.width - 100 });
+
+  drawFooter(doc, 1);
+  doc.end();
+}
+
 function streamLoanAgreement(res, data) {
   const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
   doc.pipe(res);
@@ -420,6 +511,7 @@ function streamShareCertificate(res, data) {
 module.exports = {
   streamReceipt,
   streamStatement,
+  streamContributionsStatement,
   streamLoanAgreement,
   streamDisbursementConfirmation,
   streamShareCertificate,

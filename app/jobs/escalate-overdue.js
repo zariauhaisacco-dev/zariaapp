@@ -9,6 +9,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
 const db = require('../db');
 const email = require('../services/email');
+const notify = require('../services/notify');
 const push = require('../services/push');
 
 const STAGES = [1, 7, 14, 30];
@@ -46,13 +47,18 @@ const NEXT_STAGE = { 1: 7, 7: 14, 14: 30, 30: 9999999 };
         const outstanding = Number(r.total_repayable) - Number(r.amount_repaid);
 
         try {
-          await email.sendOverdueNotice(r.client_email, {
-            client_name: r.client_name,
-            amount_due: amountRemaining,
-            days_overdue: r.days_overdue,
-            loan_id: r.loan_id,
-            outstanding: outstanding,
-            stage: stage,
+          await notify.alert({
+            template: 'overdue_notice',
+            clientId: r.client_id,
+            data: {
+              clientName: r.client_name,
+              amountDue: amountRemaining,
+              daysOverdue: r.days_overdue,
+              loanId: r.loan_id,
+              outstanding: outstanding,
+              stage: stage,
+              email: r.client_email,
+            },
           });
 
           // Push notification (fire-and-forget)

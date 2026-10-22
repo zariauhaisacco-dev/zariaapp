@@ -8,6 +8,7 @@ const db = require('../db');
 const loans = require('../services/loans');
 const audit = require('../services/audit');
 const email = require('../services/email');
+const notify = require('../services/notify');
 const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -181,17 +182,21 @@ router.post('/:id/approve', async (req, res) => {
         // Notify client (non-blocking)
     try {
       const [crows] = await db.query(
-        "SELECT u.email AS user_email, c.full_name FROM clients c JOIN users u ON u.id = c.user_id WHERE c.id = ?",
+        "SELECT u.email AS user_email, c.full_name, c.id AS client_id FROM clients c JOIN users u ON u.id = c.user_id WHERE c.id = ?",
         [request.client_id]
       );
       if (crows.length && crows[0].user_email) {
-        email.sendLoanRequestApproved(crows[0].user_email, {
-          client_name: crows[0].full_name,
-          amount: principal,
-          term_months: termMonths,
-          loan_id: created.loanId,
-          interest_rate: interestRate,
-        }).catch(function (e) { console.error("[email request-approved]", e.message); });
+        notify.alert({
+          template: 'loan_request_approved',
+          clientId: crows[0].client_id,
+          data: {
+            clientName: crows[0].full_name,
+            amount: principal,
+            termMonths: termMonths,
+            loanId: created.loanId,
+            interestRate: interestRate,
+          },
+        }).catch(function (e) { console.error("[notify request-approved]", e.message); });
       }
     } catch (e) {
       console.error("[notify approve]", e.message);
@@ -257,15 +262,19 @@ router.post('/:id/reject', async (req, res) => {
     // Notify client (non-blocking)
     try {
       const [crows] = await db.query(
-        "SELECT u.email AS user_email, c.full_name FROM clients c JOIN users u ON u.id = c.user_id WHERE c.id = ?",
+        "SELECT u.email AS user_email, c.full_name, c.id AS client_id FROM clients c JOIN users u ON u.id = c.user_id WHERE c.id = ?",
         [request.client_id]
       );
       if (crows.length && crows[0].user_email) {
-        email.sendLoanRequestRejected(crows[0].user_email, {
-          client_name: crows[0].full_name,
-          reason: value.reason,
-          amount: Number(request.requested_amount),
-        }).catch(function (e) { console.error("[email request-rejected]", e.message); });
+        notify.alert({
+          template: 'loan_request_rejected',
+          clientId: crows[0].client_id,
+          data: {
+            clientName: crows[0].full_name,
+            reason: value.reason,
+            amount: Number(request.requested_amount),
+          },
+        }).catch(function (e) { console.error("[notify request-rejected]", e.message); });
       }
     } catch (e) {
       console.error("[notify reject]", e.message);

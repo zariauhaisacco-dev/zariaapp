@@ -35,7 +35,7 @@ async function main() {
 
   // 1. Find pending requests old enough to reconcile
   const [pending] = await db.query(
-    `SELECT id, client_id, loan_id, savings_account_id, checkout_request_id,
+    `SELECT id, client_id, loan_id, savings_account_id, chama_savings_account_id, checkout_request_id,
             phone, amount, status, created_at
        FROM daraja_requests
       WHERE status = 'pending'

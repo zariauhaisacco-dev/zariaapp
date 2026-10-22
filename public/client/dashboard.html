@@ -12,6 +12,9 @@
 <div class="dash">
 
   <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
     <div class="topbar-brand">
       <span class="brand-chip">Z</span>
       <span class="brand-word">Zaria</span>
@@ -27,48 +30,9 @@
     </div>
   </header>
 
-  <aside class="sidebar" id="sidebar">
-    <nav>
-      <div class="nav-group">
-        <div class="nav-group-label">My account</div>
-        <a class="nav-item active" href="/client/dashboard">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h7V3H3zM14 21h7V10h-7zM3 21h7v-6H3zM14 7h7V3h-7z"/></svg>
-          Overview
-        </a>
-        <a class="nav-item" href="/client/loans">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v12H4zM4 11h16"/></svg>
-          My loans
-        </a>
-        <a class="nav-item" href="/client/transactions">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>
-          Transactions
-        </a>
-        <a class="nav-item" href="/client/savings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8h12M6 16h12"/></svg>
-          My savings
-        </a>
-        <a class="nav-item" href="/client/shares">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
-          My shares
-        </a>
-        <a class="nav-item" href="/client/dividends">My dividends</a>
-        <a class="nav-item" href="/client/profile">Profile</a>
-      </div>
-      <div class="nav-group">
-        <div class="nav-group-label">Services</div>
-        <a class="nav-item" href="/client/request">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-          Request a loan
-        </a>
-        <a class="nav-item" href="/client/statements">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l5 5v13H6z"/><path d="M14 3v6h6"/></svg>
-          Statements
-        </a>
-      </div>
-    </nav>
-  </aside>
+
+  <aside id="sidebar" class="sidebar" data-sb-host></aside>
 
   <main class="main">
 
@@ -96,10 +60,39 @@
       </div>
     </div>
 
-    <section class="client-primary" id="clientHero">
-      <div class="label">Loading…</div>
-      <div class="amount masked-balance" data-masked><span class="unit">KES</span>—</div>
+        <section class="client-primary" id="clientHero">
+      <div class="label">Your Zaria snapshot</div>
+      <div class="hero-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:16px;position:relative;z-index:1">
+        <div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Savings</div>
+          <div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:#fff;line-height:1.2" id="heroSavings">—</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:2px" id="heroSavingsSub">—</div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Shares</div>
+          <div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:#fff;line-height:1.2" id="heroShares">—</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:2px" id="heroSharesSub">—</div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Chama</div>
+          <div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:#fff;line-height:1.2" id="heroChama">—</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:2px" id="heroChamaSub">—</div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Loans</div>
+          <div style="font-family:var(--font-mono);font-size:17px;font-weight:700;color:#fff;line-height:1.2" id="heroLoans">—</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:2px" id="heroLoansSub">—</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;position:relative;z-index:1">
+        <button class="eye-inline" id="heroEye" aria-label="Hide balances" title="Hide / show balances">
+          <svg class="eye-visible" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="eye-masked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a18.45 18.45 0 0 1 4.06-5.06"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M1 1l22 22"/></svg>
+          <span style="font-size:11px;margin-left:6px">Toggle visibility</span>
+        </button>
+      </div>
     </section>
+
 
     <section class="client-money-strip" id="moneyStrip" aria-label="My money">
       <div class="money-card" id="moneySavings">
@@ -109,7 +102,7 @@
         <div class="money-body">
           <div class="money-label">Savings balance</div>
           <div class="money-value masked-balance" id="moneySavingsValue" data-masked><span class="unit">KES</span>—</div>
-          <div class="money-sub" id="moneySavingsSub">—</div>
+          <div class="money-sub" id="moneySavingsSub"><a href="/client/savings" style="color:inherit;text-decoration:none;border-bottom:1px dotted currentColor">View contributions →</a></div>
         </div>
       </div>
 
@@ -135,6 +128,71 @@
         </div>
       </div>
     </section>
+    <section class="card" id="chamaCard" hidden style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">My chama</h2>
+          <p class="card-sub" id="chamaSub">—</p>
+        </div>
+        <a class="card-link" href="/client/chama">Manage →</a>
+      </div>
+      <div style="padding:20px 22px;border-bottom:1px solid var(--line-1)">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Your contribution</div>
+            <div style="font-size:16px;font-weight:600" id="chamaMyContrib">—</div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:2px" id="chamaMyContribSub">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Group balance</div>
+            <div style="font-family:var(--font-mono);font-size:16px;font-weight:600" id="chamaGroupBalance">—</div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:2px" id="chamaGroupBalanceSub">—</div>
+          </div>
+        </div>
+        <div id="chamaTmRow" hidden style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-top:16px;margin-top:16px;border-top:1px solid var(--line-1)">
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Times money</div>
+            <div style="font-size:14px;font-weight:600" id="chamaTmPosition">—</div>
+            <div style="font-size:12px;color:var(--ink-500);margin-top:2px" id="chamaTmReceived">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Next up</div>
+            <div style="font-size:14px;font-weight:600" id="chamaTmNext">—</div>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button type="button" class="btn-sm btn-amber" id="chamaPayBtn" hidden>Pay contribution via M-Pesa</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="loanCard" hidden style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">My loan</h2>
+          <p class="card-sub" id="loanSub">—</p>
+        </div>
+        <a class="card-link" href="/client/loans">View →</a>
+      </div>
+      <div style="padding:20px 22px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Outstanding</div>
+            <div style="font-family:var(--font-mono);font-size:16px;font-weight:600" id="loanOutstanding">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Next due</div>
+            <div style="font-size:14px;font-weight:600" id="loanNextDue">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Progress</div>
+            <div style="font-size:14px;font-weight:600" id="loanProgress">—</div>
+          </div>
+        </div>
+        <button type="button" class="btn-sm btn-amber" id="loanPayBtn">Pay via M-Pesa</button>
+      </div>
+    </section>
+
 
     <section class="grid-2-even">
       <div class="card" id="loanSummaryCard">
@@ -238,5 +296,6 @@
 
   
 <script src="/js/client-dashboard-inline.js?v=1791964210674" defer></script>
+  <script src="/js/sidebar-client.js?v=1" defer></script>
 </body>
 </html>

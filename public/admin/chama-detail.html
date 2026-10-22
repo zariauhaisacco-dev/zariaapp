@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B1F3A">
+  <title>Zaria · Chama</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/admin/chamas">← All chamas</a>
+      <div class="avatar" id="avatarBtn" title="Account">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+        <a class="nav-item active" href="/admin/chamas">Chamas</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item" href="/admin/savings">Savings</a>
+        <a class="nav-item" href="/admin/shares">Shares</a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+        <a class="nav-item" href="/admin/transactions">Transactions</a>
+        <a class="nav-item" href="/admin/reports">Reports</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title" id="chamaName">Chama</h1>
+        <p class="page-sub" id="chamaSub">Loading…</p>
+      </div>
+      <div class="page-actions">
+        <button type="button" class="btn-sm btn-outline" id="editBtn">Edit settings</button>
+        <button type="button" class="btn-sm btn-dark" id="recordBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Record contribution
+        </button>
+      </div>
+    </div>
+
+    <section class="stat-strip" style="margin-bottom:20px">
+      <div class="stat">
+        <div class="stat-label">Chama balance</div>
+        <div class="stat-value" id="statBalance">—</div>
+        <div class="stat-delta" id="statBalanceSub" style="color:var(--ink-500)">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Members</div>
+        <div class="stat-value" id="statMembers">—</div>
+        <div class="stat-delta" id="statMembersSub" style="color:var(--ink-500)">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Paid this period</div>
+        <div class="stat-value" id="statPaid">—</div>
+        <div class="stat-delta" id="statPaidSub" style="color:var(--ink-500)">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Total contributed</div>
+        <div class="stat-value" id="statContributed">—</div>
+        <div class="stat-delta" style="color:var(--ink-500)">All time</div>
+      </div>
+    </section>
+
+    <section class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="card-head">
+          <div><h2 class="card-title">Chama details</h2><p class="card-sub" id="detailsSub">—</p></div>
+          <span class="pill" id="statusPill">·</span>
+        </div>
+        <div class="kv-list" id="infoList"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><h2 class="card-title">Savings account</h2><p class="card-sub">Chama's own pot</p></div>
+        </div>
+        <div class="kv-list" id="acctList"></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Members</h2>
+          <p class="card-sub" id="membersSub">Loading…</p>
+        </div>
+        <button type="button" class="btn-sm btn-outline" id="addMemberBtn">+ Add member</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th class="num" style="text-align:right">Due</th>
+              <th class="num" style="text-align:right">Paid</th>
+              <th>Status</th>
+              <th>Last payment</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="membersBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Chama transactions</h2>
+          <p class="card-sub" id="txSub">Loading…</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Member</th>
+              <th>Type</th>
+              <th class="num" style="text-align:right">Amount</th>
+              <th class="num" style="text-align:right">Balance</th>
+              <th>Channel</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody id="txBody">
+            <tr><td colspan="7" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Add member modal -->
+<div id="addMemberModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Add member</h2>
+      <button class="icon-btn" type="button" data-close="addMemberModal" aria-label="Close">×</button>
+    </div>
+    <form id="addMemberForm" class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label for="memberSelect" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Client</label>
+        <select id="memberSelect" required style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper)">
+          <option value="">Loading clients…</option>
+        </select>
+        <p style="font-size:11px;color:var(--ink-500);margin:4px 0 0">Only active clients without a chama are shown.</p>
+      </div>
+      <p id="addMemberError" class="form-error" hidden style="color:#cf2632;font-size:13px;margin:0"></p>
+    </form>
+    <div class="modal-foot">
+      <button type="button" class="btn-sm btn-outline" data-close="addMemberModal">Cancel</button>
+      <button type="button" class="btn-sm btn-dark" id="addMemberSubmit">Enrol</button>
+    </div>
+  </div>
+</div>
+
+<!-- Record contribution modal -->
+<div id="recordModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Record contribution</h2>
+      <button class="icon-btn" type="button" data-close="recordModal" aria-label="Close">×</button>
+    </div>
+    <form id="recordForm" class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label for="recordMember" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Member</label>
+        <select id="recordMember" required style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper)">
+          <option value="">Loading members…</option>
+        </select>
+      </div>
+      <div>
+        <label for="recordAmount" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Amount (KES)</label>
+        <input id="recordAmount" type="number" min="1" step="1" required placeholder="300" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit">
+      </div>
+      <div>
+        <label for="recordChannel" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Channel</label>
+        <select id="recordChannel" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper)">
+          <option value="cash">Cash</option>
+          <option value="mpesa">M-Pesa</option>
+          <option value="bank">Bank</option>
+        </select>
+      </div>
+      <div>
+        <label for="recordNotes" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Notes <span style="font-weight:400;color:var(--ink-500)">(optional)</span></label>
+        <input id="recordNotes" type="text" maxlength="500" placeholder="e.g. Week 42 contribution" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit">
+      </div>
+      <p id="recordError" class="form-error" hidden style="color:#cf2632;font-size:13px;margin:0"></p>
+    </form>
+    <div class="modal-foot">
+      <button type="button" class="btn-sm btn-outline" data-close="recordModal">Cancel</button>
+      <button type="button" class="btn-sm btn-dark" id="recordSubmit">Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit chama modal -->
+<div id="editModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Edit chama</h2>
+      <button class="icon-btn" type="button" data-close="editModal" aria-label="Close">×</button>
+    </div>
+    <form id="editForm" class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label for="editName" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Name</label>
+        <input id="editName" type="text" maxlength="150" required style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit">
+      </div>
+      <div>
+        <label for="editCode" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Code</label>
+        <input id="editCode" type="text" maxlength="20" required style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;text-transform:uppercase">
+      </div>
+      <div>
+        <label for="editDesc" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Description</label>
+        <input id="editDesc" type="text" maxlength="500" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit">
+      </div>
+      <div>
+        <label for="editMin" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Monthly minimum (KES)</label>
+        <input id="editMin" type="number" min="1" step="1" required style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit">
+      </div>
+      <div>
+        <label for="editStatus" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Status</label>
+        <select id="editStatus" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper)">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+        <input type="checkbox" id="editTm">
+        Enable times-money (merry-go-round)
+      </label>
+      <p id="editError" class="form-error" hidden style="color:#cf2632;font-size:13px;margin:0"></p>
+    </form>
+    <div class="modal-foot">
+      <button type="button" class="btn-sm btn-outline" data-close="editModal">Cancel</button>
+      <button type="button" class="btn-sm btn-dark" id="editSubmit">Save</button>
+    </div>
+  </div>
+</div>
+
+    <!-- Times money (merry-go-round) -->
+    <section class="card" style="margin-bottom:20px" id="timesMoneyCard">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Times money</h2>
+          <p class="card-sub" id="tmSub">Loading…</p>
+        </div>
+        <button type="button" class="btn-sm btn-dark" id="payoutBtn" hidden>+ Record payout</button>
+      </div>
+      <div id="tmDisabled" hidden style="padding:24px;text-align:center;color:var(--ink-500);font-size:13px">
+        Times-money is not enabled for this chama. Enable it in <strong>Edit settings</strong> to run a merry-go-round.
+      </div>
+      <div id="tmEnabled" hidden>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 22px;border-bottom:1px solid var(--line-1)">
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Chama balance</div>
+            <div style="font-family:var(--font-mono);font-size:20px;font-weight:700" id="tmBalance">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Next up in rotation</div>
+            <div style="font-size:16px;font-weight:600" id="tmNext">—</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Recipient</th>
+                <th class="num" style="text-align:right">Amount</th>
+                <th>Channel</th>
+                <th>Reference</th>
+              </tr>
+            </thead>
+            <tbody id="tmBody">
+              <tr><td colspan="5" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Record payout modal -->
+    <div id="payoutModal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <div class="modal-head">
+          <h2>Record payout</h2>
+          <button class="icon-btn" type="button" data-close="payoutModal" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <label for="payoutRecipient" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Recipient</label>
+            <select id="payoutRecipient" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper)">
+              <option value="">Loading members…</option>
+            </select>
+            <p style="font-size:11px;color:var(--ink-500);margin:4px 0 0" id="payoutHint">—</p>
+          </div>
+          <div>
+            <label for="payoutAmount" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Amount (KES)</label>
+            <input id="payoutAmount" type="number" min="1" step="1" required style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit">
+            <p style="font-size:11px;color:var(--ink-500);margin:4px 0 0" id="payoutAmountHint">—</p>
+          </div>
+          <div>
+            <label for="payoutChannel" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Channel</label>
+            <select id="payoutChannel" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper)">
+              <option value="cash">Cash</option>
+              <option value="mpesa">M-Pesa</option>
+              <option value="bank">Bank</option>
+            </select>
+          </div>
+          <div>
+            <label for="payoutNotes" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Notes <span style="font-weight:400;color:var(--ink-500)">(optional)</span></label>
+            <input id="payoutNotes" type="text" maxlength="500" placeholder="e.g. Round 1 payout" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit">
+          </div>
+          <p id="payoutError" class="form-error" hidden style="color:#cf2632;font-size:13px;margin:0"></p>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn-sm btn-outline" data-close="payoutModal">Cancel</button>
+          <button type="button" class="btn-sm btn-dark" id="payoutSubmit">Record payout</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="card" style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Invites</h2>
+          <p class="card-sub" id="invitesSub">Loading…</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-600)">
+            <input type="checkbox" id="showAllInvites">
+            Show all
+          </label>
+          <button type="button" class="btn-sm btn-dark" id="inviteBtn">+ Send invite</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Recipient</th>
+              <th>Status</th>
+              <th>Expires</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="invitesBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--ink-500);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Invite modal -->
+    <div id="inviteModal" class="modal-backdrop" hidden>
+      <div class="modal">
+        <div class="modal-head">
+          <h2>Send invite</h2>
+          <button class="icon-btn" type="button" data-close="inviteModal" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:8px">Invite type</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:6px">
+              <input type="radio" name="inviteType" value="client" checked> Existing client
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+              <input type="radio" name="inviteType" value="email"> By email (not yet signed up)
+            </label>
+          </div>
+          <div id="inviteClientSection">
+            <label for="inviteClientSelect" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Client</label>
+            <select id="inviteClientSelect" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper)">
+              <option value="">Select client…</option>
+            </select>
+          </div>
+          <div id="inviteEmailSection" hidden>
+            <label for="inviteEmail" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Email</label>
+            <input id="inviteEmail" type="email" placeholder="email@example.com" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit">
+          </div>
+          <p id="inviteError" class="form-error" hidden style="color:#cf2632;font-size:13px;margin:0"></p>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn-sm btn-outline" data-close="inviteModal">Cancel</button>
+          <button type="button" class="btn-sm btn-dark" id="inviteSubmit">Send invite</button>
+        </div>
+      </div>
+    </div>
+
+<script src="/js/admin-chama-detail.js" defer></script>
+</body>
+</html>

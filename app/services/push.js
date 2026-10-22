@@ -35,6 +35,17 @@ async function subscribe(clientId, subscription, userAgent) {
   if (!endpoint || !keys || !keys.p256dh || !keys.auth) {
     throw new Error('Invalid subscription');
   }
+
+  // Real validation: decode and check byte lengths
+  const authBytes = Buffer.from(keys.auth, 'base64url');
+  if (authBytes.length < 16) {
+    throw new Error('Invalid auth key: must be at least 16 bytes');
+  }
+  const p256dhBytes = Buffer.from(keys.p256dh, 'base64url');
+  if (p256dhBytes.length !== 65 || p256dhBytes[0] !== 0x04) {
+    throw new Error('Invalid p256dh key: must be 65 bytes uncompressed P-256');
+  }
+
   await db.query(
     `INSERT INTO push_subscriptions (client_id, endpoint, p256dh, auth, user_agent)
      VALUES (?, ?, ?, ?, ?)

@@ -1,75 +1,80 @@
-/* Zaria — inject branding into the landing page */
+/* Zaria — landing page branding + behavior */
 (function () {
   'use strict';
 
-  function set(id, text) {
-    var el = document.getElementById(id);
-    if (el && text) el.textContent = text;
+  function $(id) { return document.getElementById(id); }
+  function setText(id, txt) { var el = $(id); if (el && txt) el.textContent = txt; }
+  function setHref(id, href) { var el = $(id); if (el && href) el.href = href; }
+
+  // ---- Password show/hide ----
+  var passwordInput = $('password');
+  var toggleBtn = $('togglePassword');
+  if (toggleBtn && passwordInput) {
+    toggleBtn.addEventListener('click', function () {
+      var showing = passwordInput.type === 'password';
+      passwordInput.type = showing ? 'text' : 'password';
+      toggleBtn.setAttribute('aria-pressed', String(showing));
+      toggleBtn.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+      toggleBtn.textContent = showing ? '◎' : '◉';
+      passwordInput.focus();
+    });
   }
 
-  function setHtml(id, html) {
-    var el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-  }
+  // ---- Year ----
+  var year = $('year');
+  if (year) year.textContent = new Date().getFullYear();
 
-  function setHref(id, href) {
-    var el = document.getElementById(id);
-    if (el && href) el.href = href;
-  }
-
-  fetch('/api/branding', { credentials: 'same-origin' })
+  // ---- Fetch branding ----
+  fetch('/api/branding', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (b) {
       if (!b) return;
 
       var logoSrc = b.logo_url ? (b.logo_url + '?v=' + Date.now()) : '/logo.png';
 
-      // Brand name
+      // Names
       if (b.sacco_name) {
-        set('brandName', b.sacco_name);
-        set('heroName', b.sacco_name);
-        set('footName', b.sacco_name);
-        document.title = b.sacco_name + (b.tagline ? ' — ' + b.tagline : '');
+        setText('brandName', b.sacco_name);
+        setText('heroName', b.sacco_name);
+        setText('footName', b.sacco_name);
+        document.title = b.sacco_name + ' | Member Login';
       }
 
-      // Tagline + mission
-      if (b.tagline) set('heroTagline', b.tagline);
-      if (b.mission_short) set('heroMission', b.mission_short);
-
-      // Logo
-      setHtml('brandLogo', '<img src="' + logoSrc + '" alt="">');
-      setHtml('heroLogo', ''); // clear
-      var heroEl = document.getElementById('heroLogo');
-      if (heroEl) heroEl.src = logoSrc;
-
-      // Colors — set CSS custom properties
-      if (b.colors) {
-        var r = document.documentElement;
-        if (b.colors.primary)    r.style.setProperty('--brand-primary', b.colors.primary);
-        if (b.colors.accent)     r.style.setProperty('--brand-accent',  b.colors.accent);
-        if (b.colors.background) r.style.setProperty('--brand-background', b.colors.background);
+      // Tagline
+      if (b.tagline) {
+        setText('heroTagline', b.tagline.toUpperCase());
+        setText('navTagline', b.tagline.toUpperCase());
       }
+
+      // Mission
+      if (b.mission_short) setText('heroMission', b.mission_short);
+
+      // Logos (3 places: nav, hero, login mark)
+      ['brandSymbol', 'heroSymbol', 'loginMark'].forEach(function (id) {
+        var el = $(id);
+        if (el) el.innerHTML = '<img src="' + logoSrc + '" alt="">';
+      });
 
       // Contact
       if (b.contact) {
         var c = b.contact;
-        if (c.phone)    set('footPhone', c.phone);
-        if (c.whatsapp) set('footWhatsapp', c.whatsapp);
+        if (c.phone) {
+          setText('footPhone', c.phone);
+          setHref('footPhone', 'tel:' + c.phone.replace(/[^\d+]/g, ''));
+        }
+        if (c.whatsapp) {
+          setHref('footWhatsapp', 'https://wa.me/' + c.whatsapp.replace(/[^\d]/g, ''));
+        }
         if (c.email) {
-          set('footEmail', c.email);
+          setText('footEmail', c.email);
           setHref('footEmailLink', 'mailto:' + c.email);
         }
-        if (c.location) set('footLocation', c.location);
-        if (c.hours)    set('footHours', c.hours);
-      }
-
-      // Meta theme-color
-      if (b.colors && b.colors.primary) {
-        var meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', b.colors.primary);
+        if (c.location) setText('footLocation', c.location);
+        if (c.hours) setText('footHours', c.hours);
       }
     })
     .catch(function (err) {
       console.warn('[landing-branding]', err.message);
     });
+
 })();

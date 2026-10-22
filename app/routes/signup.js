@@ -6,6 +6,7 @@ const db = require('../db');
 const audit = require('../services/audit');
 const email = require('../services/email');
 const emailValidate = require('../services/email-validate');
+const ping = require('../services/ping');
 
 const router = express.Router();
 
@@ -43,6 +44,7 @@ const schema = Joi.object({
     .messages({ 'any.only': 'Passwords do not match' }),
   purpose: Joi.string().max(500).allow('', null),
   heard_about: Joi.string().max(50).allow('', null),
+  chama_invite_token: Joi.string().max(128).allow('', null),
   // Honeypot: must be empty
   website: Joi.string().max(0).allow('', null).optional(),
 });
@@ -120,12 +122,68 @@ router.post('/signup', signupLimiter, async (req, res) => {
       });
     }
 
+    // Chama invite validation (if present)
+    let chamaId = null;
+    let chamaInviteId = null;
+
+    if (value.chama_invite_token) {
+      const token = value.chama_invite_token.trim();
+      const [inviteRows] = await db.query(
+        `SELECT ci.id, ci.chama_id, ci.client_id, ci.email, ci.status, ci.expires_at,
+                ch.name AS chama_name, ch.status AS chama_status
+           FROM chama_invites ci
+           JOIN chamas ch ON ch.id = ci.chama_id
+          WHERE ci.token = ? LIMIT 1`,
+        [token]
+      );
+
+      if (!inviteRows.length) {
+        return res.status(400).json({
+          error: 'This invite link is no longer valid.',
+          details: [{ field: 'chama_invite', message: 'Invite not found' }],
+        });
+      }
+      const inv = inviteRows[0];
+
+      if (inv.status !== 'pending') {
+        return res.status(409).json({
+          error: 'This invite has already been used or declined.',
+          details: [{ field: 'chama_invite', message: 'Invite no longer pending' }],
+        });
+      }
+      if (new Date(inv.expires_at).getTime() < Date.now()) {
+        return res.status(410).json({
+          error: 'This invite has expired. Contact your chama admin.',
+          details: [{ field: 'chama_invite', message: 'Invite expired' }],
+        });
+      }
+      if (inv.chama_status !== 'active') {
+        return res.status(409).json({
+          error: 'The chama is no longer active.',
+          details: [{ field: 'chama_invite', message: 'Chama inactive' }],
+        });
+      }
+
+      // If invite was for a specific email, signup email must match
+      if (inv.email && inv.email.toLowerCase().trim() !== emailLower) {
+        return res.status(403).json({
+          error: 'This invite is for a different email address.',
+          details: [{ field: 'chama_invite', message: 'Invite email does not match signup email' }],
+        });
+      }
+
+      chamaId = inv.chama_id;
+      chamaInviteId = inv.id;
+    }
+
+
     const password_hash = await bcrypt.hash(value.password, 12);
 
     const [result] = await db.query(
       `INSERT INTO pending_registrations
-        (full_name, email, phone, national_id, password_hash, purpose, heard_about, ip_address, user_agent)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (full_name, email, phone, national_id, password_hash, purpose, heard_about,
+         chama_id, chama_invite_id, ip_address, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         value.full_name.trim(),
         emailLower,
@@ -134,6 +192,8 @@ router.post('/signup', signupLimiter, async (req, res) => {
         password_hash,
         value.purpose || null,
         value.heard_about || null,
+        chamaId,
+        chamaInviteId,
         ip,
         ua.substring(0, 255),
       ]
@@ -162,6 +222,21 @@ router.post('/signup', signupLimiter, async (req, res) => {
         national_id: value.national_id,
       }).catch(e => console.error('[email admin-signup]', e.message));
     }
+
+    // SMS alert to admin
+    try {
+      const [phoneRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'admin_alert_phone'");
+      const [enabledRow] = await db.query("SELECT setting_value FROM app_settings WHERE setting_key = 'admin_sms_alerts_enabled'");
+      const adminPhone = phoneRow.length ? phoneRow[0].setting_value : '';
+      const adminSmsEnabled = !enabledRow.length || enabledRow[0].setting_value === '1';
+      if (adminPhone && adminSmsEnabled) {
+        ping.sendSms({
+          to: adminPhone,
+          message: 'ZARIA: New signup — ' + value.full_name.trim() + ' (' + emailLower + '). Review: zariauhai.com/admin/registrations',
+          template: 'admin_new_signup',
+        }).catch(function (e) { console.error('[signup admin sms]', e.message); });
+      }
+    } catch (e) { console.error('[signup admin sms]', e.message); }
 
     res.json({
       message: 'Registration received. You will be notified once approved.',

@@ -28,6 +28,7 @@ function renderPlaceholder(role, page, title) {
     ['/admin/requests', 'Requests'],
     ['/admin/clients', 'Clients'],
     ['/admin/registrations', 'Registrations'],
+    ['/admin/chamas', 'Chamas'],
     ['/admin/transactions', 'Transactions'],
     ['/admin/reports', 'Reports'],
     ['/admin/audit', 'Audit log'],

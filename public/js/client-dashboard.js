@@ -117,6 +117,176 @@
   // Hero: next payment (active loan) OR "no active loan" OR "pending"
   // ---------------------------------------------------------------
 
+  // ---------------------------------------------------------------
+  // NEW REDESIGNED HERO — 4 quick stats
+  // ---------------------------------------------------------------
+  function renderHeroNew(summary) {
+    var savings = summary.savings ? Number(summary.savings.balance) : 0;
+    var shares = summary.shares ? Number(summary.shares.shares_held) : 0;
+    var sharesValue = summary.shares ? Number(summary.shares.shares_value) : 0;
+    var chamaPaid = summary.chama && summary.chama.my_contribution ? Number(summary.chama.my_contribution.amount_paid) : 0;
+    var loanOutstanding = summary.active_loan 
+      ? Number(summary.active_loan.total_repayable) - Number(summary.active_loan.amount_repaid)
+      : 0;
+
+    $('heroSavings').innerHTML = '<span class="unit" style="font-size:10px">KES</span>' + fmtMoney(savings);
+    $('heroSavingsSub').textContent = savings > 0 ? 'Personal savings' : 'No account yet';
+
+    $('heroShares').innerHTML = shares + ' <span style="font-size:11px;font-weight:400">shares</span>';
+    $('heroSharesSub').textContent = shares > 0 ? 'KES ' + fmtMoney(sharesValue) + ' at par' : 'No shares held';
+
+    $('heroChama').innerHTML = summary.chama 
+      ? '<span class="unit" style="font-size:10px">KES</span>' + fmtMoney(chamaPaid)
+      : '—';
+    $('heroChamaSub').textContent = summary.chama 
+      ? summary.chama.name + ' · ' + (summary.chama.my_contribution ? summary.chama.my_contribution.status : 'no contribution')
+      : 'Not in a chama';
+
+    $('heroLoans').innerHTML = loanOutstanding > 0 
+      ? '<span class="unit" style="font-size:10px">KES</span>' + fmtMoney(loanOutstanding)
+      : '—';
+    $('heroLoansSub').textContent = loanOutstanding > 0 ? 'Outstanding' : 'No active loan';
+
+    var eye = $('heroEye');
+    if (eye && !eye._wired) {
+      eye._wired = true;
+      eye.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var on = !document.body.classList.contains('is-masked');
+        document.body.classList.toggle('is-masked', on);
+        try { localStorage.setItem('zaria.mask.balances', on ? '1' : '0'); } catch (_) {}
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Chama card
+  // ---------------------------------------------------------------
+  function renderChamaCard(summary) {
+    var card = $('chamaCard');
+    if (!card) return;
+    var c = summary.chama;
+    if (!c) { card.hidden = true; return; }
+    card.hidden = false;
+
+    $('chamaSub').textContent = c.name + ' · ' + c.code + (c.account_number ? ' · ' + c.account_number : '');
+
+    var mc = c.my_contribution;
+    if (mc) {
+      $('chamaMyContrib').innerHTML = 'KES ' + fmtMoney(mc.amount_paid) + ' <span style="color:var(--ink-500);font-weight:400;font-size:13px">of ' + fmtMoney(mc.amount_due) + '</span>';
+      $('chamaMyContribSub').textContent = mc.status + (mc.last_payment_at ? ' · ' + fmtDate(mc.last_payment_at) : '');
+    } else {
+      $('chamaMyContrib').textContent = '—';
+      $('chamaMyContribSub').textContent = 'No contribution this period';
+    }
+
+    $('chamaGroupBalance').innerHTML = 'KES ' + fmtMoney(c.group_balance);
+    $('chamaGroupBalanceSub').textContent = c.member_count + ' member' + (c.member_count === 1 ? '' : 's');
+
+    var tm = c.times_money;
+    var tmRow = $('chamaTmRow');
+    if (tm && tm.enabled && tmRow) {
+      tmRow.hidden = false;
+      $('chamaTmPosition').textContent = tm.my_position ? '#' + tm.my_position + ' of ' + tm.total_members : '—';
+      $('chamaTmReceived').textContent = tm.i_received ? 'Received KES ' + fmtMoney(tm.my_total_received) : 'Not yet received';
+      $('chamaTmNext').textContent = tm.next_recipient ? tm.next_recipient.full_name : '—';
+    } else if (tmRow) {
+      tmRow.hidden = true;
+    }
+
+    var btn = $('chamaPayBtn');
+    if (btn) {
+      if (mc && mc.status !== 'paid') {
+        var remaining = Number(mc.amount_due) - Number(mc.amount_paid);
+        btn.hidden = false;
+        btn.textContent = 'Pay remaining KES ' + fmtMoney(remaining) + ' via M-Pesa';
+        btn.onclick = function () { window.location.href = '/client/chama'; };
+      } else {
+        btn.hidden = true;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Loan card
+  // ---------------------------------------------------------------
+  function renderLoanCard(summary) {
+    var card = $('loanCard');
+    if (!card) return;
+    var loan = summary.active_loan;
+    if (!loan) { card.hidden = true; return; }
+    card.hidden = false;
+
+    var total = Number(loan.total_repayable);
+    var repaid = Number(loan.amount_repaid);
+    var outstanding = total - repaid;
+    var pct = total > 0 ? Math.round((repaid / total) * 100) : 0;
+
+    $('loanSub').textContent = loan.status === 'overdue' ? 'Overdue — action needed' : 'Active loan';
+    $('loanOutstanding').innerHTML = 'KES ' + fmtMoney(outstanding);
+    $('loanNextDue').textContent = summary.next_payment ? fmtDate(summary.next_payment.dueDate) : '—';
+    $('loanProgress').textContent = pct + '% repaid';
+
+    var btn = $('loanPayBtn');
+    if (btn && !btn._wired) {
+      btn._wired = true;
+      btn.addEventListener('click', function () {
+        if (typeof openStkModal === 'function') {
+          openStkModal({ target: 'loan', loanId: loan.id, outstanding: outstanding, defaultPhone: window.__mePhone || '' });
+        } else {
+          window.location.href = '/client/loans';
+        }
+      });
+    }
+
+    // Hide old loanSummaryCard
+    var oldLoanCard = $('loanSummaryCard');
+    if (oldLoanCard) oldLoanCard.hidden = true;
+  }
+
+  // ---------------------------------------------------------------
+  // Unified activity feed
+  // ---------------------------------------------------------------
+  function renderUnifiedActivity(activity) {
+    var card = $('recentTxnsCard');
+    if (!card) return;
+    var items = activity || [];
+
+    if (!items.length) {
+      card.innerHTML =
+        '<div class="card-head"><div><h2 class="card-title">Recent activity</h2><p class="card-sub">No activity yet</p></div></div>' +
+        '<div class="empty">Your recent transactions will appear here once you start saving or contributing.</div>';
+      return;
+    }
+
+    var rows = items.map(function (a) {
+      var isCredit = a.sign === '+';
+      var iconClass = isCredit ? 'pos' : 'info';
+      var label = a.label || 'Transaction';
+      var sub = a.ref ? 'Receipt ' + escapeHtml(a.ref) : (a.source ? a.source.charAt(0).toUpperCase() + a.source.slice(1) : '');
+      var sign = isCredit ? '+' : '−';
+      var iconSvg = isCredit
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>';
+
+      return '<div class="feed-item">' +
+        '<div class="feed-icon ' + iconClass + '">' + iconSvg + '</div>' +
+        '<div class="feed-text">' + escapeHtml(label) + '<br><span style="color:var(--ink-500);font-size:12px">' + sub + '</span></div>' +
+        '<div class="feed-time" style="text-align:right">' +
+          '<div class="masked-balance" data-masked style="color:var(--ink-900);font-weight:600;font-family:var(--font-mono)">' + sign + fmtMoney(a.amount) + '</div>' +
+          '<div>' + fmtDate(a.date) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    card.innerHTML =
+      '<div class="card-head">' +
+        '<div><h2 class="card-title">Recent activity</h2><p class="card-sub">Across all accounts</p></div>' +
+        '<a class="card-link" href="/client/transactions">View all →</a>' +
+      '</div>' +
+      '<div class="feed">' + rows + '</div>';
+  }
+
   function renderHero(summary) {
     var hero = $('clientHero');
     var loan = summary.active_loan;
@@ -643,8 +813,10 @@
       var greet = hour < 12 ? 'Habari za asubuhi' : hour < 17 ? 'Habari za mchana' : 'Habari za jioni';
       $('greeting').textContent = greet + ', ' + first;
 
-      renderHero(summary);
+      renderHeroNew(summary);
       renderMoneyStrip(summary);
+      renderChamaCard(summary);
+      renderLoanCard(summary);
 
       if (summary.active_loan) {
         // fetch full loan detail for the summary card
@@ -657,7 +829,7 @@
         renderLoanSummary(null);
       }
 
-      renderTransactions(summary.recent_transactions || []);
+      renderUnifiedActivity(summary.activity || []);
     } catch (e) {
       console.error('[client-dashboard]', e);
       window.location.replace('/');
@@ -846,4 +1018,34 @@
     window.addEventListener('load', init);
   })();
 
+})();
+
+// ────────────────────────────────────────────────────────────────
+// Contribution hint enhancement — 2026-10-21
+// Populates #moneySavingsSub with "This year: KES X · view contributions"
+// once the summary loads. Silent no-op if anything fails.
+// ────────────────────────────────────────────────────────────────
+(function () {
+  'use strict';
+  function run() {
+    var el = document.getElementById('moneySavingsSub');
+    if (!el) return;
+    fetch('/api/me/savings/monthly', { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (m) {
+        if (!m || !m.years) return;
+        var y = new Date().getFullYear();
+        var cy = m.years.find(function (yr) { return yr.year === y; });
+        var total = cy ? cy.total : 0;
+        var formatted = total.toLocaleString('en-KE', { maximumFractionDigits: 0 });
+        el.innerHTML = 'This year: <strong>KES ' + formatted + '</strong> · ' +
+          '<a href="/client/savings" style="color:inherit;text-decoration:underline">view contributions</a>';
+      })
+      .catch(function () { /* silent */ });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run);
+  } else {
+    run();
+  }
 })();

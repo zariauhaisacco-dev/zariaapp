@@ -84,11 +84,13 @@
         <div class="nav-group-label">People</div>
         <a class="nav-item" href="/admin/clients">Clients</a>
         <a class="nav-item" href="/admin/registrations">Registrations</a>
+        <a class="nav-item" href="/admin/chamas">Chamas</a>
       </div>
       <div class="nav-group">
         <div class="nav-group-label">Money</div>
         <a class="nav-item" href="/admin/transactions">Transactions</a>
         <a class="nav-item" href="/admin/reports">Reports</a>
+        <a class="nav-item" href="/admin/broadcasts">Broadcasts</a>
       </div>
       <div class="nav-group">
         <div class="nav-group-label">System</div>
@@ -368,6 +370,122 @@
         </div>
       </div>
     </section>
+    <!-- Two-factor authentication (admin) -->
+    <section class="card" id="twofaCard" style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Two-factor authentication</h2>
+          <p class="card-sub">Extra security for your admin account</p>
+        </div>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <p style="font-size:13px;color:var(--ink-600);margin:0">
+          When enabled, logging in requires a 6-digit code sent to your phone via SMS.
+          If SMS fails, you can request the code via email.
+        </p>
+
+        <div class="field">
+          <label for="twofaPhone">Phone number (SMS codes will be sent here)</label>
+          <input type="tel" id="twofaPhone" placeholder="2547XXXXXXXX or 2541XXXXXXXX" maxlength="12" style="width:100%;padding:8px 12px;border:1px solid var(--line-1);border-radius:6px;font:inherit">
+          <p style="font-size:12px;color:var(--ink-500);margin:4px 0 0">
+            Must be a valid Kenyan mobile number. Format: 2547XXXXXXXX
+          </p>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer">
+          <input type="checkbox" id="twofaEnabled">
+          <span>Enable 2FA on my admin account</span>
+        </label>
+
+        <p id="twofaStatus" style="font-size:13px;margin:0;color:var(--ink-500)"></p>
+
+        <div>
+          <button type="button" class="btn-sm btn-dark" id="save2fa">Save 2FA settings</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SMS & WhatsApp (Ping Africa) -->
+    <section class="card" id="smsCard" style="margin-bottom:20px">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">SMS &amp; WhatsApp</h2>
+          <p class="card-sub">Ping Africa · delivery channels</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span id="smsCreditsBadge" style="font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--ink-700)">— credits</span>
+          <span id="smsStatusBadge" class="pill">—</span>
+        </div>
+      </div>
+      <div class="card-body" style="display:grid;gap:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Status</label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+              <input type="checkbox" id="pingEnabled">
+              Enable SMS sending
+            </label>
+          </div>
+          <div>
+            <label for="pingSenderId" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Sender ID</label>
+            <input type="text" id="pingSenderId" maxlength="20" style="width:100%;padding:8px 12px;border:1px solid var(--line-1);border-radius:6px;font:inherit">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <label for="pingWaInstance" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">WhatsApp instance</label>
+            <input type="text" id="pingWaInstance" maxlength="100" placeholder="(not configured)" style="width:100%;padding:8px 12px;border:1px solid var(--line-1);border-radius:6px;font:inherit">
+          </div>
+          <div>
+            <label for="pingUssdCode" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">USSD code</label>
+            <input type="text" id="pingUssdCode" maxlength="50" placeholder="*384*XXXX#" style="width:100%;padding:8px 12px;border:1px solid var(--line-1);border-radius:6px;font:inherit">
+          </div>
+        </div>
+        <div>
+          <label for="pingDailyLimit" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Daily SMS limit per client</label>
+          <input type="number" id="pingDailyLimit" min="1" max="100" style="width:120px;padding:8px 12px;border:1px solid var(--line-1);border-radius:6px;font:inherit">
+        </div>
+
+        <div style="padding-top:16px;border-top:1px solid var(--line-1)">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--ink-900)">Admin SMS alerts</div>
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:end">
+            <div>
+              <label for="adminAlertPhone" style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">Admin alert phone</label>
+              <input type="tel" id="adminAlertPhone" placeholder="2547XXXXXXXX" style="width:100%;padding:8px 12px;border:1px solid var(--line-1);border-radius:6px;font:inherit">
+              <p style="font-size:11px;color:var(--ink-500);margin:4px 0 0">Receives SMS when new signup or loan request comes in</p>
+            </div>
+            <div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+                <input type="checkbox" id="adminSmsEnabled">
+                Enabled
+              </label>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:12px 16px;background:var(--surface-2);border-radius:8px">
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">SMS today</div>
+            <div style="font-size:16px;font-weight:600" id="smsToday">—</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--ink-500);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">SMS this month</div>
+            <div style="font-size:16px;font-weight:600" id="smsMonth">—</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <button type="button" class="btn-sm btn-dark" id="savePingSettings">Save SMS settings</button>
+          <button type="button" class="btn-sm btn-outline" id="testPingBtn">Send test SMS</button>
+          <span id="pingStatus" style="font-size:12.5px;color:var(--pos);display:none">Saved</span>
+        </div>
+        <div id="testPingBlock" hidden style="display:grid;gap:8px;padding:12px;background:var(--surface-2);border-radius:8px">
+          <label style="font-size:13px;font-weight:600">Test phone (2547XXXXXXXX)</label>
+          <input type="tel" id="testPingPhone" placeholder="2547XXXXXXXX" style="width:100%;padding:8px 12px;border:1px solid var(--line-1);border-radius:6px;font:inherit">
+          <button type="button" class="btn-sm btn-amber" id="sendTestPing" style="justify-self:start">Send test</button>
+          <p id="testPingResult" style="font-size:12.5px;margin:0"></p>
+        </div>
+      </div>
+    </section>
+
 
 <section class="card" style="margin-bottom:20px">
       <div class="card-head">

@@ -2,7 +2,7 @@
  * Caches app shell for offline availability. API calls are network-first.
  */
 
-const VERSION = 'zaria-v2';
+const VERSION = 'zaria-v4';
 const SHELL = [
   '/',
   '/css/app.css',

@@ -111,3 +111,88 @@
     } catch (e) { window.location.replace('/'); }
   })();
 })();
+
+// ─────────────────────────────────────────────────────────────
+// Yearly savings collection (added 2026-10-21)
+// ─────────────────────────────────────────────────────────────
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { data: null, activeYear: null };
+
+  function fmtMoney(n) {
+    n = Number(n) || 0;
+    return n.toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+  function fmtShort(n) {
+    n = Number(n) || 0;
+    if (n === 0) return '—';
+    if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+    return String(n);
+  }
+
+  function renderTabs() {
+    if (!state.data || !state.data.years) return;
+    $('yearTabs').innerHTML = state.data.years.map(function (y) {
+      var active = y.year === state.activeYear ? ' active' : '';
+      return '<button type="button" class="year-tab' + active + '" data-year="' + y.year + '">' + y.year + '</button>';
+    }).join('');
+
+    Array.prototype.forEach.call($('yearTabs').querySelectorAll('.year-tab'), function (btn) {
+      btn.addEventListener('click', function () {
+        state.activeYear = Number(btn.getAttribute('data-year'));
+        Array.prototype.forEach.call($('yearTabs').querySelectorAll('.year-tab'), function (b) {
+          b.classList.toggle('active', b === btn);
+        });
+        renderMonths();
+      });
+    });
+  }
+
+  function renderMonths() {
+    if (!state.data || !state.data.years) return;
+    var yr = state.data.years.find(function (y) { return y.year === state.activeYear; });
+    if (!yr) return;
+
+    $('yearlySub').textContent = yr.txn_count + ' transaction' + (yr.txn_count === 1 ? '' : 's') +
+      ' · up to ' + yr.client_count + ' client' + (yr.client_count === 1 ? '' : 's') +
+      ' · ' + yr.year;
+
+    $('yearTotal').textContent = 'KES ' + fmtMoney(yr.total);
+
+    $('monthGrid').innerHTML = yr.months.map(function (m) {
+      var has = m.total > 0;
+      var title = m.txn_count ? ' title="' + m.txn_count + ' txn from ' + m.client_count + ' client(s)"' : '';
+      return '<div class="month-cell' + (has ? ' has-amount' : '') + '"' + title + '>' +
+        '<div class="month-label">' + m.label + '</div>' +
+        '<div class="month-amount">' + fmtShort(m.total) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  async function load() {
+    try {
+      var res = await fetch('/api/admin/savings/monthly', { credentials: 'same-origin' });
+      if (!res.ok) {
+        $('yearlySub').textContent = 'Could not load';
+        return;
+      }
+      state.data = await res.json();
+      var currentYear = new Date().getFullYear();
+      var hasCurrent = (state.data.years || []).some(function (y) { return y.year === currentYear; });
+      state.activeYear = hasCurrent ? currentYear : (state.data.years[0] || {}).year;
+      renderTabs();
+      renderMonths();
+    } catch (e) {
+      console.error('[admin savings monthly]', e);
+      $('yearlySub').textContent = 'Could not load';
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', load);
+  } else {
+    load();
+  }
+})();

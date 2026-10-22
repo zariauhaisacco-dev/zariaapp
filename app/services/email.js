@@ -405,8 +405,60 @@ async function sendAdminMonthlySummary(adminEmail, stats) {
   });
 }
 
+async function sendBroadcast(to, { subject, body }) {
+  const html = wrap(subject, `
+    <h1 style="margin:0 0 14px;font-size:20px;">${escapeHtml(subject)}</h1>
+    <div style="margin:0 0 14px;line-height:1.6;color:#2A3342;white-space:pre-wrap;">${escapeHtml(body)}</div>
+    <p style="margin:22px 0 0;color:#6B7484;font-size:12px;">
+      You're receiving this because you're a member of Zaria Uhai SACCO.
+    </p>
+  `);
+  return send({ to, subject, html });
+}
+
+// Chama invite — sent from admin when they invite a client or email
+async function sendChamaInvite({ to, fullName, chamaName, chamaCode, inviterName, acceptUrl, declineUrl, expiresInDays }) {
+  const days = expiresInDays || 7;
+  const html = wrap('You have been invited to a chama', `
+    <h1 style="margin:0 0 10px;font-size:20px;">You have been invited to join ${escapeHtml(chamaName)}</h1>
+    <p style="margin:0 0 14px;line-height:1.55;color:#2A3342;">Hi ${escapeHtml(fullName || 'there')},</p>
+    <p style="margin:0 0 14px;line-height:1.55;color:#2A3342;">
+      ${escapeHtml(inviterName || 'Your chama admin')} has invited you to join
+      <strong>${escapeHtml(chamaName)}</strong> (<code style="background:#F4F1EC;padding:1px 5px;border-radius:3px;font-size:12px;">${escapeHtml(chamaCode)}</code>)
+      on Zaria.
+    </p>
+    <p style="margin:0 0 14px;line-height:1.55;color:#2A3342;">
+      A chama is a savings group. Members contribute regularly, save together, and (if enabled) participate in a
+      merry-go-round. Joining gives you:
+    </p>
+    <ul style="margin:0 0 14px;padding-left:20px;line-height:1.7;color:#2A3342;">
+      <li>A shared savings pot with your group</li>
+      <li>Track your monthly contributions</li>
+      <li>M-Pesa STK push for easy payments</li>
+      <li>Visibility into your group's progress</li>
+    </ul>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0;">
+      <tr>
+        <td style="padding-right:10px;">${button(acceptUrl, 'Accept invite')}</td>
+        <td><a href="${declineUrl}" style="display:inline-block;padding:10px 18px;background:#F4F1EC;color:#2A3342;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">Decline</a></td>
+      </tr>
+    </table>
+    <p style="margin:0 0 14px;line-height:1.55;color:#6B7484;font-size:13px;">
+      This invite expires in <strong>${days} days</strong>. If you don't recognize this chama,
+      you can safely decline — no changes will be made to your account.
+    </p>
+    <p style="margin:22px 0 0;color:#6B7484;font-size:13px;">— The Zaria team</p>
+  `);
+  return send({
+    to,
+    subject: `You have been invited to join ${chamaName}`,
+    html,
+  });
+}
+
 module.exports = {
   send,
+  sendChamaInvite,
   wrap,
   button,
   sendSignupReceived,
@@ -422,4 +474,5 @@ module.exports = {
   sendPaymentReminder,
   sendOverdueNotice,
   sendAdminMonthlySummary,
+  sendBroadcast,
 };

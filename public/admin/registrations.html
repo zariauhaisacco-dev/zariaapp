@@ -19,7 +19,7 @@
     </div>
   </header>
 
-      <aside class="sidebar" id="sidebar">
+  <aside class="sidebar" id="sidebar">
     <nav>
       <div class="nav-group">
         <div class="nav-group-label">Overview</div>
@@ -31,6 +31,7 @@
         <div class="nav-group-label">People</div>
         <a class="nav-item" href="/admin/clients">Clients</a>
         <a class="nav-item active" href="/admin/registrations">Registrations</a>
+        <a class="nav-item" href="/admin/chamas">Chamas</a>
       </div>
       <div class="nav-group">
         <div class="nav-group-label">Money</div>
@@ -39,6 +40,7 @@
         <a class="nav-item" href="/admin/dividends">Dividends</a>
         <a class="nav-item" href="/admin/transactions">Transactions</a>
         <a class="nav-item" href="/admin/reports">Reports</a>
+        <a class="nav-item" href="/admin/broadcasts">Broadcasts</a>
       </div>
       <div class="nav-group">
         <div class="nav-group-label">System</div>
@@ -47,8 +49,6 @@
       </div>
     </nav>
   </aside>
-
-
 
   <main class="main">
     <div class="page-head">
@@ -76,17 +76,34 @@
   </main>
 </div>
 
-<div id="approveModal" hidden style="position:fixed;inset:0;background:rgba(11,31,58,0.5);display:grid;place-items:center;z-index:50;padding:20px">
-  <div style="background:#fff;border-radius:12px;max-width:460px;width:100%;padding:24px;border:1px solid var(--line-1)">
-    <h3 style="margin:0 0 8px;font-size:18px">Approve this application?</h3>
-    <p id="approveBody" style="margin:0 0 20px;color:var(--ink-600);font-size:14px;line-height:1.5"></p>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
+<!-- Approve / Merge decision modal -->
+<div id="approveModal" hidden style="position:fixed;inset:0;background:rgba(11,31,58,0.5);display:grid;place-items:center;z-index:50;padding:20px;overflow-y:auto">
+  <div style="background:#fff;border-radius:12px;max-width:560px;width:100%;padding:24px;border:1px solid var(--line-1);max-height:90vh;overflow-y:auto">
+    <h3 style="margin:0 0 8px;font-size:18px">Review application</h3>
+    <p id="approveBody" style="margin:0 0 16px;color:var(--ink-600);font-size:14px;line-height:1.5"></p>
+
+    <!-- Candidates (auto-detected) -->
+    <div id="candidatesSection" hidden style="margin-bottom:16px;padding:12px;background:#FFF8E1;border:1px solid #F5B301;border-radius:8px">
+      <div style="font-size:12px;font-weight:600;color:#8B6914;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">⚠ Possible historic matches</div>
+      <div id="candidatesList"></div>
+    </div>
+
+    <!-- Search (manual override) -->
+    <div style="margin-bottom:16px;padding:12px;background:#F8F7F5;border:1px solid var(--line-1);border-radius:8px">
+      <div style="font-size:12px;font-weight:600;color:var(--ink-600);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Search historic clients</div>
+      <input type="search" id="histSearchInput" placeholder="Name, phone, or national ID (min 2 chars)…"
+             style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--line-1);border-radius:6px;background:#fff;outline:none;box-sizing:border-box">
+      <div id="histSearchResults" style="margin-top:8px"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
       <button type="button" class="btn-sm btn-outline" id="approveCancel">Cancel</button>
-      <button type="button" class="btn-sm btn-dark" id="approveConfirm">Approve</button>
+      <button type="button" class="btn-sm btn-dark" id="approveConfirm">Create new client</button>
     </div>
   </div>
 </div>
 
+<!-- Reject modal (unchanged) -->
 <div id="rejectModal" hidden style="position:fixed;inset:0;background:rgba(11,31,58,0.5);display:grid;place-items:center;z-index:50;padding:20px">
   <div style="background:#fff;border-radius:12px;max-width:460px;width:100%;padding:24px;border:1px solid var(--line-1)">
     <h3 style="margin:0 0 12px;font-size:18px">Reject application</h3>
@@ -104,9 +121,7 @@
   </div>
 </div>
 
-<script src="/js/admin-registrations.js" defer></script>
-
-  
+<script src="/js/admin-registrations.js?v=3" defer></script>
 <script src="/js/admin-registrations-inline.js" defer></script>
 </body>
 </html>

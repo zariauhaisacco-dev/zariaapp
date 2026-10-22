@@ -30,6 +30,36 @@
       .catch(function () {});
   })();
 
+  // Chama invite banner (if ?chama_invite=<token> present)
+  var chamaInviteToken = null;
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    var token = params.get('chama_invite');
+    if (!token) return;
+    fetch('/api/chama-invites/' + encodeURIComponent(token) + '/preview')
+      .then(function(r){return r.json();})
+      .then(function(p){
+        if (!p.valid) {
+          var map = {not_found:'Invite not found.',expired:'Invite expired.',cancelled:'Invite cancelled.',declined:'Invite declined.',already_used:'Invite already used.',chama_inactive:'Chama inactive.'};
+          var errEl = document.getElementById('inviteError');
+          if (errEl) { errEl.textContent = map[p.reason] || 'Invite not valid.'; errEl.hidden = false; }
+          return;
+        }
+        chamaInviteToken = token;
+        var nameEl = document.getElementById('inviteChamaName');
+        var codeEl = document.getElementById('inviteChamaCode');
+        var byEl = document.getElementById('inviteByEmail');
+        var bannerEl = document.getElementById('inviteBanner');
+        var tokEl = document.getElementById('chamaInviteToken');
+        if (nameEl) nameEl.textContent = p.chama_name;
+        if (codeEl) codeEl.textContent = p.chama_code || '';
+        if (byEl) byEl.textContent = p.inviter_email || 'your chama admin';
+        if (bannerEl) bannerEl.hidden = false;
+        if (tokEl) tokEl.value = token;
+      })
+      .catch(function(){});
+  })();
+
   function showError(msg) {
     errorBox.textContent = msg;
     errorBox.hidden = false;
@@ -72,6 +102,7 @@
       heard_about: (fd.get('heard_about') || '').toString(),
       website: (fd.get('website') || '').toString()
     };
+    if (chamaInviteToken) data.chama_invite_token = chamaInviteToken;
 
     var preErr = clientValidate(data);
     if (preErr) { showError(preErr); return; }

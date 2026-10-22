@@ -181,7 +181,7 @@ router.post('/callback', async (req, res) => {
     const resultDesc = body.ResultDesc;
 
     const [rows] = await db.query(
-      'SELECT id, client_id, loan_id, savings_account_id, phone, amount FROM daraja_requests WHERE checkout_request_id = ? LIMIT 1',
+      'SELECT id, client_id, loan_id, savings_account_id, chama_savings_account_id, phone, amount FROM daraja_requests WHERE checkout_request_id = ? LIMIT 1',
       [checkoutRequestId]
     );
     if (!rows.length) {

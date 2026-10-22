@@ -32,6 +32,37 @@
     .success-box p { margin: 0 0 16px; color: var(--ink-600); font-size: 14px; line-height: 1.55; }
     select.styled { padding:12px 14px;font-size:16px;font-family:inherit;color:var(--ink-900);background:#fff;
                     border:1px solid var(--line);border-radius:10px;width:100%; }
+    .invite-banner {
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      border: 1px solid var(--line-1);
+      background: linear-gradient(135deg, rgba(11,31,58,0.04), rgba(245,179,1,0.06));
+    }
+    .invite-banner h3 { margin: 0 0 4px; font-size: 15px; color: var(--ink-900); font-weight: 700; }
+    .invite-banner .code { font-family: var(--font-mono); background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .invite-banner .inviter { font-size: 13px; color: var(--ink-600); margin: 4px 0; }
+    .invite-banner .note { font-size: 12px; color: var(--ink-500); margin: 6px 0 0; }
+    .invite-error {
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: #FBF2DE;
+      border-left: 3px solid #A76A00;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--ink-800);
+    }
+    .invite-banner { padding: 16px 20px; border-radius: 12px; margin-bottom: 20px;
+                     border: 1px solid var(--line-1);
+                     background: linear-gradient(135deg, rgba(11,31,58,0.04), rgba(245,179,1,0.06)); }
+    .invite-banner h3 { margin: 0 0 4px; font-size: 15px; color: var(--ink-900); font-weight: 700; }
+    .invite-banner .code { font-family: var(--font-mono); background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .invite-banner .inviter { font-size: 13px; color: var(--ink-600); margin: 4px 0; }
+    .invite-banner .note { font-size: 12px; color: var(--ink-500); margin: 6px 0 0; }
+    .invite-error { padding: 14px 18px; border-radius: 10px; background: #FBF2DE;
+                    border-left: 3px solid #A76A00; margin-bottom: 20px; font-size: 13px; color: var(--ink-800); }
+
+
   </style>
 </head>
 <body>
@@ -44,7 +75,15 @@
     </div>
 
     <div id="form-wrap">
-      <div class="signup-head">
+      <div id="inviteBanner" class="invite-banner" hidden>
+        <h3>You're joining <span id="inviteChamaName">—</span> <span class="code" id="inviteChamaCode">—</span></h3>
+        <p class="inviter">Invited by <span id="inviteByEmail">—</span></p>
+        <p class="note">Your membership activates after admin approval.</p>
+      </div>
+      <div id="inviteError" class="invite-error" hidden></div>
+      <input type="hidden" id="chamaInviteToken" value="">
+
+<div class="signup-head">
         <h1>Become a member</h1>
         <p>Join a community that saves together and grows together. Our team reviews every application personally.</p>
       </div>
