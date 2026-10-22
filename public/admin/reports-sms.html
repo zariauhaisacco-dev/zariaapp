@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zaria · SMS Reports</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+<div class="dash">
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="brand-chip">Z</span><span class="brand-word">Zaria</span></div>
+    <div class="topbar-actions">
+      <a class="btn-sm btn-outline" href="/admin/dashboard">Dashboard</a>
+      <div class="avatar" id="avatarBtn">·</div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <aside class="sidebar" id="sidebar">
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-label">Overview</div>
+        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
+        <a class="nav-item" href="/admin/loans">Loans</a>
+        <a class="nav-item" href="/admin/requests">Requests</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">People</div>
+        <a class="nav-item" href="/admin/clients">Clients</a>
+        <a class="nav-item" href="/admin/registrations">Registrations</a>
+        <a class="nav-item" href="/admin/chamas">Chamas</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">Money</div>
+        <a class="nav-item" href="/admin/savings">Savings</a>
+        <a class="nav-item" href="/admin/shares">Shares</a>
+        <a class="nav-item" href="/admin/dividends">Dividends</a>
+        <a class="nav-item" href="/admin/transactions">Transactions</a>
+        <a class="nav-item active" href="/admin/reports">Reports</a>
+        <a class="nav-item" href="/admin/broadcasts">Broadcasts</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-label">System</div>
+        <a class="nav-item" href="/admin/audit">Audit log</a>
+        <a class="nav-item" href="/admin/settings">Settings</a>
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">SMS reports</h1>
+        <p class="page-sub" id="pageSub">Loading…</p>
+      </div>
+      <div class="page-actions">
+        <a href="#" class="btn-sm btn-outline" id="exportBtn">Export CSV</a>
+        <a href="/admin/reports" class="btn-sm btn-outline">← Back to Reports</a>
+      </div>
+    </div>
+
+    <div style="background:#FFF8E1;border:1px solid #F5B301;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#8B6914">
+      <strong>Note:</strong> Delivery confirmation is not available from Ping Africa's API.
+      All messages show "sent" (accepted by carrier).
+      Check the Ping Africa dashboard for final delivery status.
+    </div>
+
+    <section class="card" style="margin-bottom:16px">
+      <div class="card-body" style="padding:16px 20px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:0 0 140px">
+            <label for="fromInput" style="font-size:12px;font-weight:600;color:var(--ink-600);display:block;margin-bottom:4px">From</label>
+            <input type="date" id="fromInput" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--line-1);border-radius:6px;box-sizing:border-box">
+          </div>
+          <div style="flex:0 0 140px">
+            <label for="toInput" style="font-size:12px;font-weight:600;color:var(--ink-600);display:block;margin-bottom:4px">To</label>
+            <input type="date" id="toInput" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--line-1);border-radius:6px;box-sizing:border-box">
+          </div>
+          <div style="flex:0 0 140px">
+            <label for="statusFilter" style="font-size:12px;font-weight:600;color:var(--ink-600);display:block;margin-bottom:4px">Status</label>
+            <select id="statusFilter" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--line-1);border-radius:6px;box-sizing:border-box">
+              <option value="">All</option>
+              <option value="delivered">Delivered</option>
+              <option value="sent">Sent</option>
+              <option value="failed">Failed</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:180px">
+            <label for="searchInput" style="font-size:12px;font-weight:600;color:var(--ink-600);display:block;margin-bottom:4px">Search (phone, message, template)</label>
+            <input type="search" id="searchInput" placeholder="e.g. 2547 or 'admin login'" style="width:100%;padding:7px 10px;font-size:13px;border:1px solid var(--line-1);border-radius:6px;box-sizing:border-box">
+          </div>
+          <button type="button" class="btn-sm btn-dark" id="applyBtn" style="height:34px;padding:0 16px">Apply</button>
+          <button type="button" class="btn-sm btn-outline" id="resetBtn" style="height:34px;padding:0 16px">Reset</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="stat-strip" style="margin-bottom:20px">
+      <div class="stat">
+        <div class="stat-label">Total</div>
+        <div class="stat-value" id="statTotal">—</div>
+      </div>
+      <div class="stat">
+      <div class="stat">
+        <div class="stat-label">Sent</div>
+        <div class="stat-value" id="statSent" style="color:var(--amber-500)">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Failed</div>
+        <div class="stat-value" id="statFailed" style="color:var(--neg)">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Cost (credits)</div>
+        <div class="stat-value" id="statCost">—</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Phone</th>
+              <th>Client</th>
+              <th>Template</th>
+              <th>Message</th>
+              <th>Status</th>
+              <th class="num" style="text-align:right">Cost</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink-500)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-top:1px solid var(--line-1)">
+        <div style="font-size:13px;color:var(--ink-500)" id="paginationInfo">—</div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn-sm btn-outline" id="prevBtn" disabled>← Prev</button>
+          <button type="button" class="btn-sm btn-outline" id="nextBtn" disabled>Next →</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/js/admin-reports-sms.js?v=1" defer></script>
+</body>
+</html>

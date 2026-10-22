@@ -187,7 +187,7 @@ async function logSms({ clientId, phone, message, template, status, providerMess
         clientId || null, phone || 'unknown', message || '', template || null, status,
         providerMessageId || null, transactionReference || null,
         creditsCharged || null, parts || 1, errorMessage || null,
-        status === 'sent' ? new Date() : null,
+        null,
       ]
     );
   } catch (err) {
@@ -283,7 +283,7 @@ async function logWhatsApp({ clientId, phone, type, textContent, mediaUrl, media
         clientId || null, phone || 'unknown', type || 'text',
         textContent || null, mediaUrl || null, mediaCaption || null, mediaFilename || null,
         template || null, status, providerMessageId || null, errorMessage || null,
-        status === 'sent' ? new Date() : null,
+        null,
       ]
     );
   } catch (err) {

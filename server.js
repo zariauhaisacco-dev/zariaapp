@@ -18,6 +18,7 @@ const adminRegistrations = require('./app/routes/admin-registrations');
 const adminLoanRequests = require('./app/routes/admin-loan-requests');
 const adminTransactions = require('./app/routes/admin-transactions');
 const adminReports = require('./app/routes/admin-reports');
+const adminSmsReports = require('./app/routes/admin-sms-reports');
 const adminAudit = require('./app/routes/admin-audit');
 const adminSettings = require('./app/routes/admin-settings');
 const adminSavings = require('./app/routes/admin-savings');
@@ -143,6 +144,7 @@ app.use('/api/admin/broadcasts', adminBroadcasts);
 app.use('/api/admin/search', adminSearch);
 app.use('/api/admin/notifications', adminNotifications);
 app.use('/api/admin/chamas', require('./app/routes/admin-chama'));
+app.use('/api/admin/reports/sms', adminSmsReports);
 app.use('/api/admin', adminLoans);
 
 app.use('/api/me', meRoutes);
@@ -199,6 +201,9 @@ app.get('/admin/transactions', (req, res) => {
 });
 app.get('/admin/reports', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'reports.html'));
+});
+app.get('/admin/reports/sms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'reports-sms.html'));
 });
 app.get('/admin/audit', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'audit.html'));
