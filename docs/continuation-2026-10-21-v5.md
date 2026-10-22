@@ -516,3 +516,33 @@ END OF CONTINUATION PROMPT v5
 - Verify email deliverability (check SPF/DKIM/DMARC if digests land in spam)
 - Mary wambui's email is bobohmarie254@gmail.com — differs from signup
   bobomarie254@gmail.com (missing 'h'). Needs verification.
+
+═══════════════════════════════════════════════════════════════
+# ADDENDUM 2026-10-22 — Git commit + push
+═══════════════════════════════════════════════════════════════
+
+## Commit
+- Hash: c6bb1df
+- Branch: main
+- Remote: github-zaria:zariauhaisacco-dev/zariaapp.git (private)
+- Files: 108
+- Message: "feat: admin 2FA, PDF statements, weekly digest, chama module"
+
+## Pushed to GitHub successfully
+- Local HEAD = remote HEAD = c6bb1df
+- Nothing sensitive leaked (all 5 safety checks pass)
+
+## .gitignore reinforced
+Added patterns to prevent future leaks:
+- .env.before-*, .env.deduped, .env.*.bak
+- *.bak2-*, *.before-*
+- imports/, *.import.sql
+- cleanup-*.sql, fix-*.sql, rebuild-*.sql
+- recover-row-*.js, dry-run-*.js
+- public/images/*-original.png (raw source images)
+
+## Moved out of repo (not committed)
+- 6 .env backup files → ~/zaria-env-backups/
+- 9 test SQL/JS files → ~/zaria-test-artifacts-20261022/
+- 4 imports/*.sql files → ~/zaria-test-artifacts-20261022/imports/
+- 2 .bak code files → ~/zaria-test-artifacts-20261022/
