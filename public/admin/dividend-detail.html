@@ -23,36 +23,89 @@
 
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-  <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar">
     <nav>
       <div class="nav-group">
         <div class="nav-group-label">Overview</div>
-        <a class="nav-item" href="/admin/dashboard">Dashboard</a>
-        <a class="nav-item" href="/admin/loans">Loans</a>
-        <a class="nav-item" href="/admin/requests">Requests</a>
+        <a class="nav-item" href="/admin/dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h7V3H3zM14 21h7V10h-7zM3 21h7v-6H3zM14 7h7V3h-7z"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-item" href="/admin/loans">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v12H4zM4 11h16"/></svg>
+          Loans
+          <span class="nav-badge warn" id="pendingLoansBadge" hidden></span>
+        </a>
+        <a class="nav-item" href="/admin/requests">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Requests
+          <span class="nav-badge warn" id="pendingRequestsBadge" hidden></span>
+        </a>
       </div>
+
       <div class="nav-group">
         <div class="nav-group-label">People</div>
-        <a class="nav-item" href="/admin/clients">Clients</a>
-        <a class="nav-item" href="/admin/registrations">Registrations</a>
-        <a class="nav-item" href="/admin/chamas">Chamas</a>
+        <a class="nav-item" href="/admin/clients">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Clients
+        </a>
+        <a class="nav-item" href="/admin/registrations">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.5"/><path d="m16 11 2 2 4-4"/></svg>
+          Registrations
+          <span class="nav-badge warn" id="pendingRegsBadge" hidden></span>
+        </a>
+        <a class="nav-item" href="/admin/chamas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="3"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2M14 21v-2a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4v2"/></svg>
+          Chamas
+        </a>
       </div>
+
       <div class="nav-group">
         <div class="nav-group-label">Money</div>
-        <a class="nav-item" href="/admin/savings">Savings</a>
-        <a class="nav-item" href="/admin/shares">Shares</a>
-        <a class="nav-item active" href="/admin/dividends">Dividends</a>
-        <a class="nav-item" href="/admin/transactions">Transactions</a>
-        <a class="nav-item" href="/admin/reports">Reports</a>
-        <a class="nav-item" href="/admin/broadcasts">Broadcasts</a>
+        <a class="nav-item" href="/admin/savings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8h12M6 16h12"/></svg>
+          Savings
+        </a>
+        <a class="nav-item" href="/admin/shares">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M7 16v-6M12 16V6M17 16v-9"/></svg>
+          Shares
+        </a>
+        <a class="nav-item active" href="/admin/dividends">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/></svg>
+          Dividends
+        </a>
+        <a class="nav-item" href="/admin/transactions">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>
+          Transactions
+        </a>
+        <a class="nav-item" href="/admin/reports">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 3 5-6"/></svg>
+          Reports
+        </a>
+        <a class="nav-item" href="/admin/reports/sms">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          SMS reports
+        </a>
+        <a class="nav-item" href="/admin/broadcasts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 1 0 8M6 8a6 6 0 0 0 0 8"/><circle cx="12" cy="12" r="2"/></svg>
+          Broadcasts
+        </a>
       </div>
+
       <div class="nav-group">
         <div class="nav-group-label">System</div>
-        <a class="nav-item" href="/admin/audit">Audit log</a>
-        <a class="nav-item" href="/admin/settings">Settings</a>
+        <a class="nav-item" href="/admin/audit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          Audit log
+        </a>
+        <a class="nav-item" href="/admin/settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a22 22 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
+          Settings
+        </a>
       </div>
     </nav>
   </aside>
+
 
   <main class="main">
     <div class="page-head">
