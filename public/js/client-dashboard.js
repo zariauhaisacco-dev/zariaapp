@@ -147,6 +147,33 @@
       : '—';
     $('heroLoansSub').textContent = loanOutstanding > 0 ? 'Outstanding' : 'No active loan';
 
+
+    // Update stat strip (share capital + outstanding principal)
+    var statShareCapital = $('statMyShareCapital');
+    if (statShareCapital) {
+      statShareCapital.innerHTML = '<span class="unit">KES</span>' + fmtMoney(sharesValue);
+      var shareSub = $('statMyShareCapitalSub');
+      if (shareSub) {
+        var parValue = (summary.shares && summary.shares.share_par_value) || 100;
+        shareSub.textContent = shares + ' share' + (shares === 1 ? '' : 's') + ' × KES ' + parValue + ' par';
+      }
+    }
+
+    var statOutstanding = $('statMyOutstanding');
+    if (statOutstanding) {
+      statOutstanding.innerHTML = '<span class="unit">KES</span>' + fmtMoney(loanOutstanding);
+      var outSub = $('statMyOutstandingSub');
+      if (outSub) {
+        if (summary.active_loan && summary.next_payment) {
+          var dueDate = new Date(summary.next_payment.dueDate);
+          outSub.textContent = 'Next due: ' + dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        } else if (summary.active_loan) {
+          outSub.textContent = 'Active loan';
+        } else {
+          outSub.textContent = 'No active loans';
+        }
+      }
+    }
     var eye = $('heroEye');
     if (eye && !eye._wired) {
       eye._wired = true;
