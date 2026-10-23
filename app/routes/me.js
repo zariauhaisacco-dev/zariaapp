@@ -133,7 +133,7 @@ router.get('/summary', authenticate, clientOnly, async (req, res) => {
 
     // --- Member funds: savings, shares, dividends ---
     const [savingsRows] = await db.query(
-      `SELECT id, account_number, balance, total_deposited, total_withdrawn, status
+      `SELECT id, account_number, balance, total_deposited, total_withdrawn, total_interest_earned, last_interest_posted_at, status
          FROM savings_accounts
         WHERE client_id = ? AND status = 'active'
         LIMIT 1`,
@@ -321,6 +321,8 @@ router.get('/summary', authenticate, clientOnly, async (req, res) => {
         balance: Number(savings.balance),
         total_deposited: Number(savings.total_deposited),
         total_withdrawn: Number(savings.total_withdrawn),
+        total_interest_earned: Number(savings.total_interest_earned || 0),
+        last_interest_posted_at: savings.last_interest_posted_at,
       } : null,
       shares: {
         shares_held: shares ? Number(shares.shares_held) : 0,

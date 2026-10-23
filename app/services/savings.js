@@ -184,7 +184,7 @@ async function creditInterest({ savingsAccountId, amount, notes }) {
 
     await conn.query(
       `UPDATE savings_accounts
-          SET balance = ?, total_interest_earned = total_interest_earned + ?, last_transaction_at = NOW()
+          SET balance = ?, total_interest_earned = total_interest_earned + ?, last_transaction_at = NOW(), last_interest_posted_at = NOW()
         WHERE id = ?`,
       [after, amount, savingsAccountId]
     );

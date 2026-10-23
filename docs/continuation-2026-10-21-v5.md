@@ -546,3 +546,75 @@ Added patterns to prevent future leaks:
 - 9 test SQL/JS files → ~/zaria-test-artifacts-20261022/
 - 4 imports/*.sql files → ~/zaria-test-artifacts-20261022/imports/
 - 2 .bak code files → ~/zaria-test-artifacts-20261022/
+
+═══════════════════════════════════════════════════════════════
+# ADDENDUM 2026-10-22 — SMS Reports page
+═══════════════════════════════════════════════════════════════
+
+## What was built
+- /admin/reports/sms — full SMS log viewer with filters + CSV export
+
+## Files
+- app/routes/admin-sms-reports.js — API endpoints
+- public/admin/reports-sms.html — page
+- public/js/admin-reports-sms.js — frontend logic
+- server.js — mount /api/admin/reports/sms + page route
+
+## Endpoints
+- GET /api/admin/reports/sms?from&to&status&q&page
+  Returns: sms[], summary, pagination
+- GET /api/admin/reports/sms/export.csv?from&to&status&q
+  Returns: CSV download of filtered SMS
+
+## Known limitation
+Ping Africa API does not expose delivery reports (DLR) via webhook or
+query endpoint. All SMS show status='sent' (accepted by carrier).
+
+## Bug fixed this session
+ping.js was setting delivered_at = new Date() at INSERT time — fake
+"delivered" timestamp on every SMS. Fixed to NULL. When real DLR is
+added later, delivered_at will populate correctly.
+
+## Rolled back
+50 SMS rows that had fake delivered_at were reset to status='sent',
+delivered_at=NULL. Reports now show honest state.
+
+## Outstanding
+- Ping Africa DLR webhook integration (blocked on their support)
+- Contact support@ping.africa to ask about delivery report API
+
+═══════════════════════════════════════════════════════════════
+# ADDENDUM 2026-10-22 — SMS Reports + Sidebar Refactor
+═══════════════════════════════════════════════════════════════
+
+## SMS Reports page
+- URL: /admin/reports/sms
+- Backend: app/routes/admin-sms-reports.js
+- Endpoints:
+  - GET /api/admin/reports/sms?from&to&status&q&page
+  - GET /api/admin/reports/sms/export.csv
+- Frontend: public/admin/reports-sms.html + admin-reports-sms.js
+- Honest disclaimer: no DLR tracking available via Ping Africa
+
+## Sidebar refactor (all 22 admin pages)
+- Canonical template in /tmp/canonical-sidebar.txt (regenerate if needed)
+- Script: /tmp/fix-admin-sidebars.js
+- 15 items with consistent SVG icons
+- Fixed: Chamas and Broadcasts SVG paths were broken
+- Fixed: requests.html had incomplete/old sidebar
+- Per-page active state via {{ACTIVE_X}} placeholder replacement
+- Future changes: edit template + rerun script
+
+## Bug fixed
+- ping.js: delivered_at was set to now() at INSERT time
+  (fake delivery timestamp on every SMS). Now sets NULL.
+  Real DLR requires webhook (blocked on Ping Africa support).
+
+## Data rolled back
+- 50 SMS rows had fake delivered_at set
+- Reset to status='sent', delivered_at=NULL
+- Reports page now honest
+
+## Outstanding
+- Ping Africa DLR webhook (email support@ping.africa)
+- Secret rotation (CRITICAL — everything in transcripts)

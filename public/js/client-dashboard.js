@@ -174,6 +174,23 @@
         }
       }
     }
+
+    // Interest earned stat
+    var statInterest = $('statMyInterest');
+    if (statInterest) {
+      var interestEarned = (summary.savings && summary.savings.total_interest_earned)
+        ? Number(summary.savings.total_interest_earned) : 0;
+      statInterest.innerHTML = '<span class="unit">KES</span>' + fmtMoney(interestEarned);
+      var intSub = $('statMyInterestSub');
+      if (intSub) {
+        if (summary.savings && summary.savings.last_interest_posted_at) {
+          var intDate = new Date(summary.savings.last_interest_posted_at);
+          intSub.textContent = 'Last posted: ' + intDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        } else {
+          intSub.textContent = interestEarned > 0 ? 'Total earned' : 'No interest yet';
+        }
+      }
+    }
     var eye = $('heroEye');
     if (eye && !eye._wired) {
       eye._wired = true;

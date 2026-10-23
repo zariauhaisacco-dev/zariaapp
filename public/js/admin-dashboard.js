@@ -187,89 +187,160 @@
     var feed = $('activityFeed');
     feed.innerHTML = '<div class="feed-item"><div class="feed-text">Loading…</div></div>';
 
-    // We don't have a dedicated audit-log endpoint yet, so compose a feed from
-    // the most recent loans and requests we already have access to.
-    var [loansRes, reqRes] = await Promise.all([
-      fetch('/api/admin/loans?status=all', { credentials: 'same-origin' }),
-      fetch('/api/admin/loan-requests?status=all', { credentials: 'same-origin' }),
-    ]);
+    try {
+      var res = await fetch('/api/admin/audit?per_page=60', { credentials: 'same-origin' });
+      if (!res.ok) {
+        feed.innerHTML = '<div class="feed-item"><div class="feed-text" style="color:var(--ink-500)">Could not load activity</div></div>';
+        return;
+      }
+      var data = await res.json();
+      var events = data.events || [];
 
-    if (!loansRes.ok || !reqRes.ok) {
+      // Filter out noise — logins, logouts, PDFs, password resets
+      var NOISE = ['login.success', 'login.success_2fa', 'login.failed',
+                   'login.2fa_sent', 'login.2fa_resent', 'login.2fa_verify_failed',
+                   'login.2fa_send_failed', 'logout'];
+      var filtered = events.filter(function (e) {
+        var a = e.action || '';
+        if (NOISE.indexOf(a) !== -1) return false;
+        if (a.indexOf('password_reset') === 0) return false;
+        if (a.indexOf('pdf.') === 0) return false;
+        if (a.indexOf('settings.') === 0 && a.indexOf('_test_') !== -1) return false;
+        return true;
+      });
+
+      // Map action → { icon, formatter }
+      var labels = {
+        'signup.submitted': { icon: 'warn', fn: function (e) {
+          var v = e.new_values || {};
+          return '<strong>' + escapeHtml(v.full_name || 'A signup') + '</strong> submitted a signup';
+        }},
+        'registration.approved': { icon: 'pos', fn: function (e) {
+          return 'Registration approved for <strong>' + escapeHtml((e.new_values || {}).email || 'client') + '</strong>';
+        }},
+        'registration.rejected': { icon: 'neg', fn: function () {
+          return 'Registration rejected';
+        }},
+        'registration.merged_with_historic': { icon: 'pos', fn: function (e) {
+          return 'Merged signup with <strong>historic client #' + (e.entity_id || '?') + '</strong>';
+        }},
+        'client.imported': { icon: 'info', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Imported client <strong>' + escapeHtml(nv.full_name || '') + '</strong>';
+        }},
+        'client.merged': { icon: 'pos', fn: function (e) {
+          return 'Merged client record <strong>#' + (e.entity_id || '?') + '</strong>';
+        }},
+        'loan.created': { icon: 'info', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Loan <strong>#' + (e.entity_id || '?') + '</strong> created' + (nv.principal ? ' — KES ' + fmtMoney(nv.principal) : '');
+        }},
+        'loan.approved': { icon: 'warn', fn: function (e) {
+          return 'Loan <strong>#' + (e.entity_id || '?') + '</strong> approved';
+        }},
+        'loan.disbursed': { icon: 'info', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Loan <strong>#' + (e.entity_id || '?') + '</strong> disbursed' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }},
+        'payment.recorded': { icon: 'pos', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Payment received' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }},
+        'loan_request.submitted': { icon: 'warn', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Loan request submitted' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }},
+        'savings.deposit': { icon: 'pos', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Savings deposit' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }},
+        'savings.withdrawal': { icon: 'neg', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Savings withdrawal' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }},
+        'chama.created': { icon: 'info', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Chama created: <strong>' + escapeHtml(nv.name || '') + '</strong>';
+        }},
+        'chama.member_added': { icon: 'info', fn: function () {
+          return 'Member added to chama';
+        }},
+        'chama.contribution_recorded': { icon: 'pos', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Chama contribution recorded' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }},
+        'chama.stk_initiated': { icon: 'warn', fn: function () {
+          return 'Chama STK payment initiated';
+        }},
+        'chama.payout': { icon: 'pos', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Chama payout' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }},
+        'broadcast.started': { icon: 'warn', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Broadcast sent via <strong>' + escapeHtml(nv.channels || 'email') + '</strong>';
+        }},
+        'broadcast.completed': { icon: 'pos', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Broadcast completed' + (nv.sent_to ? ' — ' + nv.sent_to + ' recipients' : '');
+        }},
+        'admin.2fa_enabled': { icon: 'pos', fn: function () {
+          return '2FA enabled for admin';
+        }},
+        'admin.2fa_disabled': { icon: 'warn', fn: function () {
+          return '2FA disabled for admin';
+        }},
+        'settings.ping_updated': { icon: 'info', fn: function () {
+          return 'SMS settings updated';
+        }},
+        'settings.daraja_test_succeeded': { icon: 'pos', fn: function () {
+          return 'M-Pesa test succeeded';
+        }},
+        'daraja.stk_push_initiated': { icon: 'info', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'M-Pesa STK initiated' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }},
+        'daraja.chama_contribution_recorded': { icon: 'pos', fn: function (e) {
+          var nv = e.new_values || {};
+          return 'Chama M-Pesa contribution' + (nv.amount ? ' — KES ' + fmtMoney(nv.amount) : '');
+        }}
+      };
+
+      var items = filtered.slice(0, 10).map(function (e) {
+        var label = labels[e.action];
+        return {
+          ts: e.created_at,
+          icon: label ? label.icon : 'neutral',
+          text: label ? label.fn(e) : ('<em>' + escapeHtml(e.action) + '</em>'),
+        };
+      });
+
+      if (!items.length) {
+        feed.innerHTML = '<div class="feed-item"><div class="feed-text" style="color:var(--ink-500)">No activity yet</div></div>';
+        return;
+      }
+
+      // Fixed SVG paths (previous ones had typos)
+      var iconSvg = {
+        pos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4L19 6"/></svg>',
+        neg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+        warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 8v5"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor"/></svg>',
+        info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>',
+        neutral: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>'
+      };
+
+      feed.innerHTML = items.map(function (i) {
+        return '<div class="feed-item">' +
+          '<div class="feed-icon ' + i.icon + '">' + (iconSvg[i.icon] || iconSvg.neutral) + '</div>' +
+          '<div class="feed-text">' + i.text + '</div>' +
+          '<div class="feed-time">' + shortTime(i.ts) + '</div>' +
+        '</div>';
+      }).join('');
+
+    } catch (e) {
+      console.error('[loadActivity]', e);
       feed.innerHTML = '<div class="feed-item"><div class="feed-text" style="color:var(--ink-500)">Could not load activity</div></div>';
-      return;
     }
-
-    var loansData = await loansRes.json();
-    var reqData = await reqRes.json();
-
-    var items = [];
-
-    (loansData.loans || []).forEach(function (l) {
-      var icon = 'neutral', text = '';
-      if (l.status === 'repaid') {
-        icon = 'pos'; text = '<strong>' + escapeHtml(l.client_name) + '</strong> repaid <strong>KES ' + fmtMoney(l.total_repayable) + '</strong> on loan #' + l.id;
-      } else if (l.status === 'active') {
-        icon = 'info'; text = 'Loan <strong>#' + l.id + '</strong> disbursed — <strong>KES ' + fmtMoney(l.principal) + '</strong> to ' + escapeHtml(l.client_name);
-      } else if (l.status === 'overdue') {
-        icon = 'neg'; text = 'Loan <strong>#' + l.id + '</strong> for ' + escapeHtml(l.client_name) + ' is overdue';
-      } else if (l.status === 'pending') {
-        icon = 'warn'; text = 'Loan <strong>#' + l.id + '</strong> created for <strong>' + escapeHtml(l.client_name) + '</strong>';
-      } else if (l.status === 'approved') {
-        icon = 'warn'; text = 'Loan <strong>#' + l.id + '</strong> approved — awaiting disbursement';
-      } else {
-        return;
-      }
-      items.push({
-        ts: l.disbursed_at || l.created_at,
-        icon: icon,
-        text: text,
-      });
-    });
-
-    (reqData.requests || []).forEach(function (r) {
-      var icon = 'info', text = '';
-      if (r.status === 'pending') {
-        icon = 'warn';
-        text = '<strong>' + escapeHtml(r.client_name) + '</strong> requested <strong>KES ' + fmtMoney(r.requested_amount) + '</strong>';
-      } else if (r.status === 'approved') {
-        icon = 'pos';
-        text = 'Request from <strong>' + escapeHtml(r.client_name) + '</strong> approved';
-      } else if (r.status === 'rejected') {
-        icon = 'neg';
-        text = 'Request from <strong>' + escapeHtml(r.client_name) + '</strong> rejected';
-      } else {
-        return;
-      }
-      items.push({
-        ts: r.reviewed_at || r.created_at,
-        icon: icon,
-        text: text,
-      });
-    });
-
-    items.sort(function (a, b) { return new Date(b.ts) - new Date(a.ts); });
-    items = items.slice(0, 8);
-
-    if (!items.length) {
-      feed.innerHTML = '<div class="feed-item"><div class="feed-text" style="color:var(--ink-500)">No activity yet</div></div>';
-      return;
-    }
-
-    var iconSvg = {
-      pos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l4 4 10-10"/></svg>',
-      neg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 6l12 12M18 6 6 18"/></svg>',
-      warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 8v5"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor"/></svg>',
-      info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>',
-      neutral: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>',
-    };
-
-    feed.innerHTML = items.map(function (i) {
-      return '<div class="feed-item">' +
-        '<div class="feed-icon ' + i.icon + '">' + iconSvg[i.icon] + '</div>' +
-        '<div class="feed-text">' + i.text + '</div>' +
-        '<div class="feed-time">' + shortTime(i.ts) + '</div>' +
-      '</div>';
-    }).join('');
   }
 
   // ---------------------------------------------------------------
