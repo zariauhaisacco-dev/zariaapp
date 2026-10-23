@@ -45,7 +45,8 @@ router.get('/eligibility', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────
 // GET /api/me/savings/monthly
-// Returns per-year, per-month contribution data
+// Returns per-year, per-month NET contribution data.
+// Withdrawals are subtracted, interest is excluded.
 // ─────────────────────────────────────────────────────────────
 router.get('/monthly', async (req, res) => {
   try {
@@ -58,7 +59,7 @@ router.get('/monthly', async (req, res) => {
     }
 
     const [rows] = await db.query(
-      `SELECT id, amount, reference, notes, created_at
+      `SELECT id, type, amount, reference, notes, created_at
          FROM savings_transactions
         WHERE savings_account_id = ?
           AND status = 'completed'
@@ -78,7 +79,17 @@ router.get('/monthly', async (req, res) => {
           return { month: i + 1, label: MONTH_LABELS[i], amount: 0, count: 0, refs: [] };
         });
       }
-      byYear[y][m].amount += Number(r.amount);
+
+      // Net contribution logic:
+      // - withdrawal → subtract
+      // - deposit / adjustment → add
+      // - interest → excluded from contributions chart
+      if (r.type === 'withdrawal') {
+        byYear[y][m].amount -= Number(r.amount);
+      } else if (r.type === 'deposit' || r.type === 'adjustment') {
+        byYear[y][m].amount += Number(r.amount);
+      }
+
       byYear[y][m].count += 1;
       if (r.reference) byYear[y][m].refs.push(r.reference);
     });
@@ -125,6 +136,7 @@ router.get('/monthly', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────
 // GET /api/me/savings/monthly.csv
+// Same net-contribution logic: withdrawals negative, interest excluded.
 // ─────────────────────────────────────────────────────────────
 router.get('/monthly.csv', async (req, res) => {
   try {
@@ -135,7 +147,7 @@ router.get('/monthly.csv', async (req, res) => {
     if (!account) return res.status(404).json({ error: 'No savings account' });
 
     const [rows] = await db.query(
-      `SELECT amount, reference, notes, created_at
+      `SELECT type, amount, reference, notes, created_at
          FROM savings_transactions
         WHERE savings_account_id = ? AND status = 'completed'
         ORDER BY created_at ASC`,
@@ -150,7 +162,18 @@ router.get('/monthly.csv', async (req, res) => {
       const day = d.getUTCDate();
       const ref = (r.reference || '').replace(/,/g, ';');
       const notes = (r.notes || '').replace(/,/g, ';');
-      return [y, m, day, Number(r.amount).toFixed(2), ref, notes].join(',');
+
+      // Net amount: withdrawal negative, interest zero, else positive
+      let amt;
+      if (r.type === 'withdrawal') {
+        amt = '-' + Number(r.amount).toFixed(2);
+      } else if (r.type === 'interest') {
+        amt = '0.00';
+      } else {
+        amt = Number(r.amount).toFixed(2);
+      }
+
+      return [y, m, day, amt, ref, notes].join(',');
     }).join('\n');
 
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
